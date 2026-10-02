@@ -33,7 +33,7 @@ export function Hero() {
           من مكان واحد.
         </p>
         <div className="sahl-video-actions">
-          <Link to="/auth" search={{ mode: "signup" as const }} className="sahl-video-primary">
+          <Link to="/welcome" className="sahl-video-primary">
             <span>كوّن فريقك مجانًا</span>
           </Link>
           <Link to="/app" className="sahl-video-secondary">

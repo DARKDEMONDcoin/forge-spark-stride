@@ -26,8 +26,7 @@ export function CtaFooter() {
               </p>
               <div className="mt-9 flex flex-wrap justify-center gap-3">
                 <Link
-                  to="/auth"
-                  search={{ mode: "signup" as const }}
+                  to="/welcome"
                   className="cta-glow-button group inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-4 font-bold text-background transition-transform duration-300 hover:-translate-y-1"
                 >
                   وظّف فريقك الآن

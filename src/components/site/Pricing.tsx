@@ -122,8 +122,7 @@ export function Pricing() {
                     </Link>
                   ) : (
                     <Link
-                      to="/auth"
-                      search={{ mode: "signup", plan: p.id }}
+                      to="/welcome" search={{ plan: p.id }}
                       className={cn(
                         "mt-6 block rounded-full py-3 text-center font-bold transition-transform duration-300 hover:-translate-y-0.5",
                         p.highlight

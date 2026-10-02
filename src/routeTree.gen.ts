@@ -31,6 +31,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as SubprocessorsRouteImport } from './routes/subprocessors'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ApiEmployeeStreamRouteImport } from './routes/api/employee-stream'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppApprovalsRouteImport } from './routes/app.approvals'
@@ -186,6 +187,11 @@ const SubprocessorsRoute = SubprocessorsRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEmployeeStreamRoute = ApiEmployeeStreamRouteImport.update({
@@ -448,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/stories': typeof StoriesRoute
   '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/employee-stream': typeof ApiEmployeeStreamRoute
   '/app/approvals': typeof AppApprovalsRoute
   '/app/automations': typeof AppAutomationsRoute
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/employee-stream': typeof ApiEmployeeStreamRoute
   '/app/approvals': typeof AppApprovalsRoute
   '/app/automations': typeof AppAutomationsRoute
@@ -587,6 +595,7 @@ export interface FileRoutesById {
   '/stories': typeof StoriesRoute
   '/subprocessors': typeof SubprocessorsRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/employee-stream': typeof ApiEmployeeStreamRoute
   '/app/approvals': typeof AppApprovalsRoute
   '/app/automations': typeof AppAutomationsRoute
@@ -659,6 +668,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/subprocessors'
     | '/terms'
+    | '/welcome'
     | '/api/employee-stream'
     | '/app/approvals'
     | '/app/automations'
@@ -728,6 +738,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/subprocessors'
     | '/terms'
+    | '/welcome'
     | '/api/employee-stream'
     | '/app/approvals'
     | '/app/automations'
@@ -797,6 +808,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/subprocessors'
     | '/terms'
+    | '/welcome'
     | '/api/employee-stream'
     | '/app/approvals'
     | '/app/automations'
@@ -868,6 +880,7 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   SubprocessorsRoute: typeof SubprocessorsRoute
   TermsRoute: typeof TermsRoute
+  WelcomeRoute: typeof WelcomeRoute
   ApiEmployeeStreamRoute: typeof ApiEmployeeStreamRoute
   BlogSlugRoute: typeof BlogSlugRoute
   EmployeesIdRoute: typeof EmployeesIdRoute
@@ -1047,6 +1060,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/employee-stream': {
@@ -1460,6 +1480,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   SubprocessorsRoute: SubprocessorsRoute,
   TermsRoute: TermsRoute,
+  WelcomeRoute: WelcomeRoute,
   ApiEmployeeStreamRoute: ApiEmployeeStreamRoute,
   BlogSlugRoute: BlogSlugRoute,
   EmployeesIdRoute: EmployeesIdRoute,

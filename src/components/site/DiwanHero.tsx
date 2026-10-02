@@ -58,7 +58,7 @@ export function DiwanHero() {
           ويتابعون مبيعاتك بالعربية وبلهجتك — وأنت تجلس في الصدر وتقرّر فقط.
         </p>
         <div className="diwan-actions">
-          <Link to="/auth" search={{ mode: "signup" as const }} className="diwan-cta">
+          <Link to="/welcome" className="diwan-cta">
             استقبل فريقك مجاناً
             <ArrowLeft className="size-4" aria-hidden="true" />
           </Link>

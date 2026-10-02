@@ -661,7 +661,7 @@ export function EditorialHomepage() {
             <p className="sahl-lead">يكتبولك، يصمملك، يبيعولك، وانت بس بتشوف النتيجة بتكبر.</p>
             <div className="sahl-actions">
               <Button asChild size="lg">
-                <Link to="/auth" search={{ mode: "signup" as const }}>
+                <Link to="/welcome">
                   كوّن فريقك مجانًا <ArrowLeft />
                 </Link>
               </Button>
@@ -1357,7 +1357,7 @@ export function EditorialHomepage() {
                   </ul>
                   <Button asChild variant="outline" className="sahl-home-plan-cta">
                     {plan.id !== "scale" ? (
-                      <Link to="/auth" search={{ mode: "signup" as const, plan: plan.id }}>
+                      <Link to="/welcome" search={{ plan: plan.id }}>
                         {plan.cta}
                         <ArrowLeft />
                       </Link>
@@ -1411,7 +1411,7 @@ export function EditorialHomepage() {
             <p>كوّن فريقك، أرسل الهدف مرة واحدة، وراجع الخطة قبل أن يبدأ التنفيذ.</p>
             <div className="sahl-actions">
               <Button asChild size="lg">
-                <Link to="/auth" search={{ mode: "signup" as const }}>
+                <Link to="/welcome">
                   ابدأ تجربتك المجانية <ArrowLeft />
                 </Link>
               </Button>
