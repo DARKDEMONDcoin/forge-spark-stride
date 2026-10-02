@@ -78,7 +78,7 @@ function Welcome() {
     </header>
     <main className="mx-auto w-full max-w-6xl px-5 pb-28 pt-6 sm:px-8 sm:pt-10">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-5 flex items-center justify-between gap-4 text-xs font-bold text-muted-foreground"><span>تعرّف على سهل</span><span>{step + 1} / {lastStep + 1}</span></div>
+        <div className="mb-5 flex items-center justify-between gap-4 text-xs font-bold text-muted-foreground"><span>تعرّف على سهل</span><span dir="ltr">{step + 1} / {lastStep + 1}</span></div>
         <div className="flex gap-1.5" role="progressbar" aria-label="تقدم الجولة" aria-valuemin={0} aria-valuemax={lastStep + 1} aria-valuenow={step + 1}>
           {Array.from({ length: lastStep + 1 }, (_, index) => <span key={index} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-300", index <= step ? "bg-primary" : "bg-border")} />)}
         </div>
