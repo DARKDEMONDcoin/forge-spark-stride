@@ -202,8 +202,8 @@ function Onboarding() {
       const saved = sessionStorage.getItem(welcomeDraftKey);
       if (!saved) return;
       const draft = JSON.parse(saved) as Record<string, unknown>;
-      if (typeof draft.website === "string") setWebsite(draft.website);
-      if (typeof draft.industry === "string") setIndustry(draft.industry);
+      if (typeof draft["website"] === "string") setWebsite(draft["website"]);
+      if (typeof draft["industry"] === "string") setIndustry(draft["industry"]);
       sessionStorage.removeItem(welcomeDraftKey);
     } catch { /* Optional introduction; regular onboarding remains available. */ }
   }, []);

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const draftKey = "sahl-welcome-draft";
-export type WelcomeDraft = { purpose: string; website: string; industry: string };
+export type WelcomeDraft = { purpose: string; website: string; industry: string; step?: number };
 const industries = ["التجارة الإلكترونية", "المطاعم والمقاهي", "العيادات والرعاية الصحية", "العقارات", "التعليم والتدريب", "التقنية والتطبيقات", "الخدمات المهنية", "السياحة والضيافة", "التجميل والعناية", "المال والمحاسبة", "التسويق والإعلان", "الأزياء والمنتجات", "الجمعيات والمبادرات", "صناعة المحتوى", "أخرى"];
 const employeeDescriptions: Record<string, { headline: string; tasks: string[] }> = {
   sonny: { headline: "محتوى ينطلق من فكرتك، ولا يُنشر إلا بموافقتك.", tasks: ["يضع خطة محتوى تناسب نشاطك", "يكتب المنشورات بلهجة جمهورك", "يجهز المواد لتراجعها قبل النشر"] },
@@ -52,14 +52,15 @@ function Welcome() {
         setPurpose(typeof draft.purpose === "string" ? draft.purpose : "");
         setWebsite(typeof draft.website === "string" ? draft.website : "");
         setIndustry(typeof draft.industry === "string" ? draft.industry : "");
+        if (typeof draft.step === "number" && Number.isInteger(draft.step) && draft.step >= 0 && draft.step <= lastStep) setStep(draft.step);
       }
     } catch { /* Browsers can disable storage; the tour still works. */ }
     setReady(true);
   }, []);
   useEffect(() => {
     if (!ready) return;
-    try { sessionStorage.setItem(draftKey, JSON.stringify({ purpose, website, industry } satisfies WelcomeDraft)); } catch { /* optional */ }
-  }, [ready, purpose, website, industry]);
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ purpose, website, industry, step } satisfies WelcomeDraft)); } catch { /* optional */ }
+  }, [ready, purpose, website, industry, step]);
   useEffect(() => { setExample(false); }, [step]);
 
   const next = () => { setStep((current) => Math.min(current + 1, lastStep)); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -88,7 +89,7 @@ function Welcome() {
           <h1 className="welcome-title">كيف ستستخدم فريق سهل؟</h1>
           <p className="welcome-lead">اختر ما يناسبك، وسنعرفك على الفريق قبل أن تنشئ حسابًا.</p>
           <div className="mx-auto mt-10 grid max-w-xl gap-3">
-            {[["business", "لإدارة مشروعي", "محتوى، مبيعات، تنظيم، وتصميم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف ما يمكنني فعله", "ابدأ بجولة، ثم قرر ما يناسبك"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => setPurpose(value)} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-base">{label}</strong><span className="mt-1 block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}
+            {[["business", "لإدارة مشروعي", "محتوى، مبيعات، تنظيم، وتصميم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف ما يمكنني فعله", "ابدأ بجولة، ثم قرر ما يناسبك"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => setPurpose(value ?? "")} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-base">{label}</strong><span className="mt-1 block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}
           </div>
         </section>}
         {step === 1 && <section className="text-center">
