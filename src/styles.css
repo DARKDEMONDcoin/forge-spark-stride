@@ -20262,7 +20262,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero-layout {
     min-height: 0;
     display: block;
-    padding-top: 214px;
+    padding-top: clamp(118px, 18vh, 180px);
   }
   .sahl-hero-copy {
     width: 100%;
@@ -20278,28 +20278,36 @@ section:has(> .integration-grid-wave) {
   }
   .sahl-hero h1 {
     max-width: 390px;
-    margin-top: 40px;
-    font-size: 3.7rem;
-    line-height: 1.07;
+    margin-top: clamp(16px, 3vh, 32px);
+    font-size: clamp(2.05rem, 8.6vw, 3rem);
+    line-height: 1.1;
+  }
+  .sahl-first-claim {
+    margin-top: clamp(12px, 2.2vh, 22px) !important;
+    font-size: clamp(1rem, 4.4vw, 1.2rem);
   }
   .sahl-lead {
-    margin-top: 24px !important;
-    font-size: 1rem;
-    line-height: 1.75;
+    margin-top: clamp(10px, 2vh, 20px) !important;
+    font-size: 0.98rem;
+    line-height: 1.7;
   }
   .sahl-actions {
     align-items: stretch;
     flex-direction: column;
+    margin-top: clamp(16px, 3vh, 28px);
   }
   .sahl-actions [data-slot="button"],
   .sahl-actions .inline-flex {
     width: 100%;
-    min-height: 55px;
+    min-height: 50px;
     font-size: 1rem;
   }
   .sahl-hero-copy > small {
     justify-content: center;
-    margin-top: 22px;
+    margin-top: clamp(10px, 2vh, 20px);
+  }
+  .sahl-hero-product {
+    margin-top: 40px;
   }
   .sahl-trust .sahl-shell {
     width: 100%;
