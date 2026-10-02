@@ -19,7 +19,7 @@ export type WelcomePreview = {
 const socialHosts = ["instagram.com", "facebook.com", "tiktok.com", "linkedin.com", "youtube.com", "x.com", "twitter.com", "snapchat.com", "pinterest.com", "wa.me"];
 const publicHost = (host: string) => {
   const h = host.toLowerCase().replace(/\.$/, "");
-  return h.includes(".") && h.length <= 253 && !h.endsWith(".localhost") && !h.endsWith(".onion") && !h.endsWith(".arpa") && !h.endsWith(".lan") && !h.endsWith(".home") && !h.endsWith(".corp") && !h.endsWith(".localhost.localdomain") && !h.includes("..") && /^[a-z0-9.-]+$/.test(h) && !h.endsWith(".local") && !h.endsWith(".internal") && !h.endsWith(".localhost") && !h.endsWith(".test") && !h.endsWith(".invalid") && !h.endsWith(".example") && !/^\d+(?:\.\d+){3}$/.test(h) && !h.includes(":") && h !== "localhost";
+  return h.includes(".") && h.length <= 253 && !h.endsWith(".localhost") && !h.endsWith(".onion") && !h.endsWith(".arpa") && !h.endsWith(".lan") && !h.endsWith(".home") && !h.endsWith(".corp") && !h.endsWith(".metadata") && !h.endsWith(".cloud") && h !== "metadata.google.internal" && !h.endsWith(".localhost.localdomain") && !h.includes("..") && /^[a-z0-9.-]+$/.test(h) && !h.endsWith(".local") && !h.endsWith(".internal") && !h.endsWith(".localhost") && !h.endsWith(".test") && !h.endsWith(".invalid") && !h.endsWith(".example") && !/^\d+(?:\.\d+){3}$/.test(h) && !h.includes(":") && h !== "localhost";
 };
 export function publicWebsiteUrl(raw: string): URL | null {
   try {
@@ -41,7 +41,7 @@ async function readPage(url: URL) {
       const location = res.headers.get("location");
       if (!location) throw new Error("تعذر قراءة الموقع.");
       const next = publicWebsiteUrl(new URL(location, current).toString());
-      if (!next || next.hostname !== url.hostname) throw new Error("الموقع نقلنا إلى رابط آخر؛ أدخل الرابط النهائي.");
+      if (!next || next.hostname.replace(/^www\./, "") !== url.hostname.replace(/^www\./, "")) throw new Error("الموقع نقلنا إلى رابط آخر؛ أدخل الرابط النهائي.");
       current = next;
       continue;
     }
