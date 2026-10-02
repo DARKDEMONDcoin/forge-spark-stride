@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
 
 import { ChatShellMeta } from "@/components/app/ChatShellHost";
 import { Portrait } from "@/components/site/Portrait";
 import { team } from "@/data/team";
-import { useLastMessages, useWorkspace } from "@/lib/data";
+import { useEmployeeInbox, useWorkspace } from "@/lib/data";
 
 export const Route = createFileRoute("/app/chat/")({
   head: () => ({
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/app/chat/")({
 
 function ChatIndex() {
   const { data: workspace } = useWorkspace();
-  const { data: messages } = useLastMessages(workspace?.id);
+  const { data: inbox } = useEmployeeInbox(workspace?.id);
 
   return (
     <>
@@ -28,36 +27,45 @@ function ChatIndex() {
         lead="اطلب من أي موظف ما تحتاجه — بالعربية وبلهجتك."
         padded
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mx-auto w-full max-w-3xl divide-y divide-border border-y border-border">
         {team.map((m) => {
-          const last = (messages ?? []).find((x) => x.employee_id === m.id);
+          const thread = (inbox ?? []).find((item) => item.employee_id === m.id);
+          const unread = thread?.unread_count ?? 0;
+          const time = thread?.last_employee_message_at
+            ? new Intl.DateTimeFormat("ar-EG", { hour: "numeric", minute: "2-digit" }).format(
+                new Date(thread.last_employee_message_at),
+              )
+            : "";
           return (
             <Link
               key={m.id}
               to="/app/chat/$id"
               params={{ id: m.id }}
-              className="group rounded-3xl border border-border bg-card p-6 transition-transform duration-300 hover:-translate-y-1"
+              className="group flex min-h-20 items-center gap-3 px-2 py-3 transition-colors hover:bg-secondary/60 sm:px-4"
             >
-              <div className="flex items-center gap-3">
-                <span className="relative block size-12 shrink-0 overflow-hidden rounded-2xl shadow-card">
+                <span className="relative block size-14 shrink-0 overflow-hidden rounded-full shadow-card">
                   <Portrait
                     memberId={m.id}
                     name={m.name}
                     className="size-full transition-transform duration-500 group-hover:scale-105"
                   />
                 </span>
-                <span>
-                  <span className="block font-display font-black">{m.name}</span>
-                  <span className="block text-sm text-muted-foreground">{m.role}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-3">
+                    <strong className={unread ? "font-black" : "font-bold"}>{m.name}</strong>
+                    <time className={unread ? "text-xs font-bold text-primary" : "text-xs text-muted-foreground"}>{time}</time>
+                  </span>
+                  <span className="mt-1 flex items-center gap-2">
+                    <span className={unread ? "line-clamp-1 min-w-0 flex-1 text-sm font-bold" : "line-clamp-1 min-w-0 flex-1 text-sm text-muted-foreground"}>
+                      {thread?.last_employee_message ?? m.tagline}
+                    </span>
+                    {unread ? (
+                      <b className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[0.65rem] text-primary-foreground">
+                        {unread > 99 ? "99+" : unread}
+                      </b>
+                    ) : null}
+                  </span>
                 </span>
-              </div>
-              <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">
-                {last?.body ?? m.tagline}
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-primary">
-                افتح المحادثة
-                <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
-              </span>
             </Link>
           );
         })}

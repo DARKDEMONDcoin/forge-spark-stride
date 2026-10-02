@@ -171,6 +171,65 @@ export function useConversations(workspaceId: string | undefined, employeeId: st
   });
 }
 
+/** محادثة واحدة ثابتة لكل موظف؛ القيد الفريد يمنع ازدواجها حتى مع طلبين متزامنين. */
+export function useEmployeeConversation(workspaceId: string | undefined, employeeId: string) {
+  return useQuery({
+    queryKey: ["employee-conversation", workspaceId, employeeId],
+    enabled: !!workspaceId,
+    queryFn: async () => {
+      const existing = await must<Conversation | null>(
+        supabase
+          .from("conversations")
+          .select("*")
+          .eq("workspace_id", workspaceId!)
+          .eq("employee_id", employeeId)
+          .maybeSingle(),
+      );
+      if (existing) return existing;
+      return must<Conversation>(
+        supabase
+          .from("conversations")
+          .upsert(
+            { workspace_id: workspaceId!, employee_id: employeeId, title: "المحادثة" },
+            { onConflict: "workspace_id,employee_id" },
+          )
+          .select()
+          .single(),
+      );
+    },
+  });
+}
+
+export function useEmployeeInbox(workspaceId?: string) {
+  return useQuery({
+    queryKey: ["employee-inbox", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: () =>
+      must<Conversation[]>(
+        supabase
+          .from("conversations")
+          .select("*")
+          .eq("workspace_id", workspaceId!)
+          .order("last_employee_message_at", { ascending: false, nullsFirst: false }),
+      ),
+  });
+}
+
+export function useMarkConversationRead(workspaceId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { error } = await supabase
+        .from("conversations")
+        .update({ unread_count: 0 })
+        .eq("id", conversationId)
+        .eq("workspace_id", workspaceId!);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["employee-inbox", workspaceId] }),
+  });
+}
+
 export function useCreateConversation(workspaceId: string | undefined, employeeId: string) {
   const qc = useQueryClient();
   return useMutation({

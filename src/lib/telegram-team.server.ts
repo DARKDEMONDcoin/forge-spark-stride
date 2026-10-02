@@ -131,16 +131,19 @@ async function ensureConversation(
   workspaceId: string,
   employeeId: string,
   ids: Record<string, string>,
-  fresh: boolean,
+  _fresh: boolean,
 ): Promise<string> {
   const existing = ids[employeeId];
-  if (existing && !fresh) {
+  if (existing) {
     const { data } = await admin.from("conversations").select("id").eq("id", existing).eq("workspace_id", workspaceId).maybeSingle();
     if (data) return existing;
   }
   const { data, error } = await admin
     .from("conversations")
-    .insert({ workspace_id: workspaceId, employee_id: employeeId, title: "محادثة تيليجرام" })
+    .upsert(
+      { workspace_id: workspaceId, employee_id: employeeId, title: "المحادثة" },
+      { onConflict: "workspace_id,employee_id" },
+    )
     .select("id")
     .single();
   if (error || !data) throw new Error(`تعذّر بدء المحادثة: ${error?.message ?? ""}`);
@@ -253,7 +256,7 @@ export async function handleTelegramTeam(
       const emp = link.active_employee || "sonny";
       const conv = await ensureConversation(admin, workspaceId, emp, ids, true);
       await admin.from("command_links").update({ conversation_ids: { ...ids, [emp]: conv } }).eq("id", link.id);
-      await send(botToken, chatId, `✨ بدأنا محادثة جديدة مع ${byId(emp)?.name ?? "الفريق"}.`);
+      await send(botToken, chatId, `💬 فتحت محادثتك مع ${byId(emp)?.name ?? "الفريق"}.`);
       return true;
     }
     if (await ui.handleMenuCommand(uiCtx, parsed.command)) return true;

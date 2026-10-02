@@ -2,7 +2,7 @@ import { LogoMark } from "@/components/site/LogoMark";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Portrait } from "@/components/site/Portrait";
-import { Bell, Globe, MailWarning, Menu, Palette, X, User, LogOut, ShieldCheck, Users, LayoutGrid, CheckCircle2 } from "lucide-react";
+import { Bell, Globe, MailWarning, Menu, Palette, X, User, LogOut, ShieldCheck, Users, LayoutGrid, CheckCircle2, Pencil } from "lucide-react";
 
 import { team } from "@/data/team";
 import { COUNTRIES } from "@/data/team-portraits";
@@ -10,7 +10,7 @@ import { useRegion } from "@/hooks/use-region";
 import { supabase } from "@/integrations/supabase/client";
 import { GUEST_EMAIL } from "@/lib/guest.functions";
 
-import { useProfile, useWorkspace } from "@/lib/data";
+import { useProfile, useUpdateWorkspace, useWorkspace } from "@/lib/data";
 import { UserAvatar } from "@/components/app/UserAvatar";
 import { SiteFavicon } from "@/components/app/SiteBadge";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,11 @@ import defaultWorkspace from "@/assets/default-workspace.jpg";
 
 function WorkspaceCard() {
   const { data: workspace } = useWorkspace();
+  const updateWorkspace = useUpdateWorkspace();
   const website = (workspace as { website?: string | null } | undefined)?.website?.trim();
   return (
-    <div className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-start">
+    <div className="w-full rounded-lg border border-border bg-card p-3 text-start">
+      <div className="flex items-center gap-3">
       {website ? (
         <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-background p-1.5 shadow-sm">
           <SiteFavicon website={website} className="size-full" />
@@ -37,11 +39,39 @@ function WorkspaceCard() {
         />
       )}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-bold">{workspace?.name ?? "مساحة عملك"}</span>
+        <span className="block truncate text-sm font-bold" dir="ltr">
+          {website ? website.replace(/^https?:\/\//, "").replace(/^www\./, "") : workspace?.name ?? "أضف موقع نشاطك"}
+        </span>
         <span className="block truncate text-xs text-muted-foreground">
-          {workspace?.industry ?? "—"}
+          {website ? "موقع النشاط" : workspace?.industry ?? "—"}
         </span>
       </span>
+      <Link
+        to="/app/brain"
+        aria-label="تغيير موقع النشاط"
+        title="تغيير موقع النشاط"
+        className="grid size-8 shrink-0 place-items-center rounded-md border border-border hover:bg-secondary"
+      >
+        <Pencil className="size-3.5" />
+      </Link>
+      </div>
+      {website && workspace ? (
+        <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 border-t border-border pt-2.5 text-xs font-bold">
+          <span>استخدام الموقع في الردود</span>
+          <input
+            type="checkbox"
+            checked={workspace.use_website_context}
+            disabled={updateWorkspace.isPending}
+            onChange={(event) =>
+              updateWorkspace.mutate({
+                id: workspace.id,
+                patch: { use_website_context: event.target.checked },
+              })
+            }
+            className="size-4 accent-primary"
+          />
+        </label>
+      ) : null}
     </div>
   );
 }
