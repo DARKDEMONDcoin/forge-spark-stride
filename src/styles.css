@@ -20309,39 +20309,8 @@ section:has(> .integration-grid-wave) {
   .sahl-hero-product {
     margin-top: 40px;
   }
-}
-/* Very short phones: keep the whole intro on the first screen */
-@media (max-width: 720px) and (max-height: 640px) {
-  .sahl-hero-layout {
-    padding-top: 96px;
-  }
-  .sahl-live-metric {
-    font-size: 0.74rem;
-  }
-  .sahl-hero h1 {
-    margin-top: 12px;
-    font-size: 1.8rem;
-  }
-  .sahl-first-claim {
-    margin-top: 10px !important;
-    font-size: 0.95rem;
-  }
-  .sahl-lead {
-    margin-top: 8px !important;
-    font-size: 0.88rem;
-    line-height: 1.6;
-  }
-  .sahl-actions {
-    margin-top: 14px;
-    gap: 8px;
-  }
-  .sahl-actions [data-slot="button"],
-  .sahl-actions .inline-flex {
-    min-height: 44px;
-    font-size: 0.92rem;
-  }
   .sahl-hero-copy > small {
-    margin-top: 10px;
+    margin-top: clamp(10px, 2vh, 20px);
   }
   .sahl-trust .sahl-shell {
     width: 100%;
@@ -47397,3 +47366,38 @@ body:has(.welcome-stage) .sahl-cookie-consent { display: none; }
 .welcome-dna-team li span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @media (max-width: 480px) { .welcome-dna-team li span { -webkit-line-clamp: 2; } .welcome-dna-line { font-size: .78rem; } }
 @media (max-height: 700px) { .welcome-website .welcome-dna { margin-top: .35rem; padding: .45rem .6rem; } .welcome-website .welcome-dna-line { margin-top: .25rem; -webkit-line-clamp: 1; } .welcome-website .welcome-dna-panel { min-height: 0; padding-top: .3rem; } .welcome-website .welcome-dna-team li span { -webkit-line-clamp: 1; } .welcome-website .welcome-dna-chips { max-height: 1.6rem; } .welcome-scan-progress { margin-top: .4rem; } }
+
+/* Very short phones: keep the whole intro on the first screen */
+@media (max-width: 720px) and (max-height: 640px) {
+  .sahl-hero-layout {
+    padding-top: 96px;
+  }
+  .sahl-live-metric {
+    font-size: 0.74rem;
+  }
+  .sahl-hero h1 {
+    margin-top: 12px;
+    font-size: 1.8rem;
+  }
+  .sahl-first-claim {
+    margin-top: 10px !important;
+    font-size: 0.95rem;
+  }
+  .sahl-lead {
+    margin-top: 8px !important;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+  .sahl-actions {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 44px;
+    font-size: 0.92rem;
+  }
+  .sahl-hero-copy > small {
+    margin-top: 10px;
+  }
+}
