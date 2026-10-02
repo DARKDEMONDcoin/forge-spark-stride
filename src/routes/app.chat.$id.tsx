@@ -39,6 +39,8 @@ import {
   Palette,
   MailWarning,
   MoreHorizontal,
+  Settings2,
+  MessageCircle,
 } from "lucide-react";
 
 import { ChatShellActions, ChatShellMeta } from "@/components/app/ChatShellHost";
@@ -90,6 +92,7 @@ import {
 
 import { featuredSkillsFor, skillsFor, type Skill } from "@/data/skills";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
@@ -878,7 +881,7 @@ function ChatView({
   const dragRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
 
   const positionBarPanel = (panel: "apps" | "brand" | "chats" | "work" | "more") => {
-    const button = barPanelButtonRefs.current[panel];
+    const button = barPanelButtonRefs.current[panel] ?? barPanelButtonRefs.current.more;
     if (!button) return;
     const rect = button.getBoundingClientRect();
     setBarPanelAnchor({ x: rect.left + rect.width / 2, top: rect.bottom + 8 });
@@ -1345,67 +1348,45 @@ function ChatView({
     <>
       <ChatShellMeta title={member.name} padded={false} compactTitle hideTitle />
       <ChatShellActions>
-        <div className="chat-topbar-actions no-scrollbar flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto sm:gap-1.5">
-          <span
-            className="chat-presence"
-            title={busy ? `${member.name} بيشتغل على طلبك الآن` : `${member.name} متاح الآن`}
-          >
-            <i aria-hidden="true" />
-            <span>{busy ? "بيشتغل الآن" : "متاح الآن"}</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => void navigate({ to: "/app/browser" })}
-            title="فتح صفحة المتصفح المنفّذ"
-            className="topbar-pill"
-          >
-            <Globe className="size-4 shrink-0" />
-            <span>المتصفح</span>
-          </button>
-          <button
-            ref={(button) => {
-              barPanelButtonRefs.current.chats = button;
-            }}
-            type="button"
-            onClick={() => toggleBarPanel("chats")}
-            aria-expanded={barPanel === "chats"}
-            title={`محادثات ${member.name}`}
-            className={cn("topbar-pill", barPanel === "chats" && "is-active")}
-          >
-            <History className="size-4 shrink-0" />
-            <span>المحادثات</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStartingNewConversation(true);
-              setConversationId(undefined);
-              setBarPanel(null);
-              setDraft("");
-              setPending(null);
-              setError(null);
-              inputRef.current?.focus();
-            }}
-            disabled={!workspace}
-            className="chat-new-button grid size-9 shrink-0 place-items-center rounded-full border border-border transition-colors hover:bg-secondary disabled:opacity-50"
-            aria-label="محادثة جديدة"
-            title="محادثة جديدة"
-          >
-            <Plus className="size-4" />
-          </button>
-          <button
+        <div className="chat-topbar-actions no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-1.5" dir="rtl">
+          <div className="chat-employee-identity">
+            <span className="chat-employee-avatar"><Portrait memberId={member.id} name={member.name} className="size-full" /></span>
+            <span className="chat-employee-names"><strong>{member.name}</strong><small>{member.role}</small></span>
+          </div>
+          <div className="chat-employee-navigation" aria-label={`أدوات ${member.name}`}>
+            <Button type="button" variant="ghost" size="sm" className="chat-nav-button is-active" aria-label="المحادثة" title="المحادثة" onClick={() => { setBarPanel(null); setEmbeddedTool(null); }}>
+              <MessageCircle className="size-4" /><span>المحادثة</span>
+            </Button>
+            <Button type="button" variant="ghost" size="sm" className="chat-nav-button" aria-label="التقويم" title="التقويم" onClick={() => void navigate({ to: "/app/calendar" })}>
+              <CalendarDays className="size-4" /><span>التقويم</span>
+            </Button>
+            <Button ref={(button) => { barPanelButtonRefs.current.brand = button; }} type="button" variant="ghost" size="sm" className={cn("chat-nav-button", barPanel === "brand" && "is-active")} aria-label="التعليمات" title="التعليمات وعقل العلامة" aria-expanded={barPanel === "brand"} onClick={() => toggleBarPanel("brand")}>
+              <BookOpenText className="size-4" /><span>التعليمات</span>
+            </Button>
+            <Button ref={(button) => { barPanelButtonRefs.current.apps = button; }} type="button" variant="ghost" size="sm" className={cn("chat-nav-button", barPanel === "apps" && "is-active")} aria-label="التكاملات" title="تكاملات الموظف" aria-expanded={barPanel === "apps"} onClick={() => toggleBarPanel("apps")}>
+              <PlugZap className="size-4" /><span>التكاملات</span>
+            </Button>
+          </div>
+          <div className="chat-employee-end-actions">
+            <Button type="button" variant="ghost" size="icon-sm" className="chat-nav-button" aria-label="الإعدادات" title="الإعدادات" onClick={() => void navigate({ to: "/app/settings" })}>
+              <Settings2 className="size-4" />
+            </Button>
+            <Button
             ref={(button) => {
               barPanelButtonRefs.current.more = button;
             }}
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => toggleBarPanel("more")}
             aria-expanded={barPanel === "more"}
+            aria-label="المزيد"
             title="المزيد"
-            className={cn("topbar-pill", barPanel === "more" && "is-active")}
+            className={cn("chat-nav-button", barPanel === "more" && "is-active")}
           >
             <MoreHorizontal className="size-4 shrink-0" />
-            <span>المزيد</span>
-          </button>
+          </Button>
+          </div>
         </div>
       </ChatShellActions>
       <div className="chat-command-layout">
@@ -2097,6 +2078,20 @@ function ChatView({
 
               {barPanel === "more" ? (
                 <div className="chat-more-menu">
+                  <Button type="button" variant="outline" onClick={() => toggleBarPanel("chats")}>
+                    <History className="size-4" /><span>المحادثات السابقة</span>
+                  </Button>
+                  <Button type="button" variant="outline" disabled={!workspace} onClick={() => {
+                    setStartingNewConversation(true);
+                    setConversationId(undefined);
+                    setBarPanel(null);
+                    setDraft("");
+                    setPending(null);
+                    setError(null);
+                    inputRef.current?.focus();
+                  }}>
+                    <Plus className="size-4" /><span>محادثة جديدة</span>
+                  </Button>
                   <SkillPalette
                     skills={employeeSkills}
                     quick={quickSkills}

@@ -47201,6 +47201,35 @@ html {
   .chat-composer-textarea { max-height: min(48dvh, 24rem) !important; }
 }
 
+/* شريط الموظف: مجموعة واحدة متوازنة في وسط مساحة المحادثة. */
+.app-shell.is-chat-shell header.app-topbar .app-topbar-inner { width: max-content !important; max-width: 100%; margin-inline: auto; grid-template-columns: minmax(0, 1fr) !important; border-radius: 1.5rem !important; }
+.app-shell.is-chat-shell .app-topbar-inner > .sr-only { display: none; }
+.app-shell.is-chat-shell .app-topbar-controls { min-width: 0 !important; width: auto !important; flex: 0 1 auto !important; overflow: hidden !important; }
+.app-shell.is-chat-shell .chat-topbar-actions { display: flex !important; width: auto !important; min-width: 0; flex: 0 1 auto !important; overflow-x: auto !important; justify-content: flex-start; scrollbar-width: none; }
+.chat-employee-identity { display: flex; align-items: center; gap: .55rem; flex: none; min-width: 0; padding-inline-end: .5rem; }
+.chat-employee-avatar { display: block; width: 2.1rem; height: 2.1rem; flex: none; overflow: hidden; border-radius: .5rem; }
+.chat-employee-names { display: grid; min-width: 0; line-height: 1.2; }
+.chat-employee-names strong { font-size: .79rem; white-space: nowrap; }
+.chat-employee-names small { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); font-size: .65rem; }
+.chat-employee-navigation, .chat-employee-end-actions { display: flex; align-items: center; gap: .12rem; flex: none; }
+.chat-employee-end-actions { padding-inline-start: .35rem; border-inline-start: 1px solid var(--border); }
+.app-shell.is-chat-shell .chat-topbar-actions .chat-nav-button { height: 2.15rem !important; min-height: 2.15rem !important; min-width: 2.15rem; padding-inline: .5rem; border-radius: .45rem; color: var(--muted-foreground); font-weight: 700; font-size: .72rem; box-shadow: none; }
+.app-shell.is-chat-shell .chat-topbar-actions .chat-nav-button:hover { color: var(--foreground); background: var(--secondary); }
+.app-shell.is-chat-shell .chat-topbar-actions .chat-nav-button.is-active { color: var(--foreground); background: var(--secondary); }
+@media (max-width: 639px) {
+  .app-shell.is-chat-shell header.app-topbar .app-topbar-inner { width: 100% !important; grid-template-columns: 2.25rem minmax(0, 1fr) !important; }
+  .app-shell.is-chat-shell .app-topbar-controls { grid-column: 2; grid-row: 1; justify-content: flex-start; }
+  .app-shell.is-chat-shell .chat-topbar-actions { gap: .1rem; }
+  .app-shell.is-chat-shell .chat-topbar-actions > .chat-employee-identity { width: auto; min-width: 0; padding-inline-end: .15rem; }
+  .chat-employee-avatar { width: 1.8rem; height: 1.8rem; }
+  .chat-employee-identity { gap: .2rem; }
+  .chat-employee-names strong { max-width: 3.2rem; overflow: hidden; text-overflow: ellipsis; font-size: .68rem; }
+  .chat-employee-names small { display: none; }
+  .app-shell.is-chat-shell .chat-topbar-actions .chat-nav-button span { display: none; }
+  .app-shell.is-chat-shell .chat-topbar-actions .chat-nav-button { min-width: 1.95rem; width: 1.95rem; padding-inline: .3rem; }
+}
+@media (prefers-reduced-motion: reduce) { .chat-nav-button { transition: none; } }
+
 /* Focused, viewport-fitted introduction. Long evidence remains available inside its own panel. */
 .welcome-stage { min-height: 100dvh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); }
 .welcome-header { flex: none; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: .65rem max(1rem, calc((100vw - 76rem) / 2)); border-bottom: 1px solid var(--border); }

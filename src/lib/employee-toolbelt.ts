@@ -3,6 +3,8 @@
  * حتى يعرف الموظف متى يستدعي البحث الحي أو المتصفح السحابي أو تكاملاته،
  * وأن أي تنفيذ يمر ببطاقة «اعتمد ونفّذ» داخل نفس المحادثة.
  */
+import { skillsFor } from "@/data/skills";
+
 const SHARED = [
   "## قاعدة الإفادة: لا ترد برفض أو «لا أستطيع». إن نقصت الأدلة الحيّة فقدّم أفضل إجابة مهنية من خبرتك مع وسم ما هو تقديري بوضوح، واقترح الخطوة التي تجلب اليقين (بحث/متصفح/سؤال واحد محدد).",
   "## أدواتك الأصلية داخل المحادثة (تستدعيها بنفسك، بلا أزرار أو شاشات خارجية)",
@@ -58,5 +60,13 @@ const SPECIALTY: Record<string, string> = {
 };
 
 export function toolbeltBlock(employeeId: string): string {
-  return [SPECIALTY[employeeId] ?? "", SHARED].filter(Boolean).join("\n");
+  const capabilities = skillsFor(employeeId);
+  const catalog = capabilities.length
+    ? [
+        "## قدراتك التي يستطيع المالك طلبها بالكلام مباشرةً",
+        "هذه أمثلة لما تنفذه أنت في المحادثة، وليست قائمة أزرار إلزامية. إذا سمّى المالك قدرة أو وصف هدفها، نفّذها بتخصصك وبالأدوات والبيانات المتاحة دون مطالبته بفتح مستعرض القدرات. لا تختلق بيانات حيّة أو تدّعِ تنفيذ إجراء قبل الموافقة.",
+        ...capabilities.map((skill) => `- ${skill.title}: ${skill.summary}`),
+      ].join("\n")
+    : "";
+  return [SPECIALTY[employeeId] ?? "", catalog, SHARED].filter(Boolean).join("\n");
 }
