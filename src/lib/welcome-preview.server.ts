@@ -103,6 +103,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
 
   function collect(html: string, pageUrl: string) {
     const doc = parseHTML(html).document;
+    const anchors = Array.from(doc.querySelectorAll("a[href]"));
     doc.querySelectorAll("script,style,nav,footer,header,noscript").forEach((el) => el.remove());
     const content = doc.querySelector("main") ?? doc.querySelector("article") ?? doc.body;
     const text = clean(content?.textContent, 1500);
@@ -112,7 +113,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
       const label = clean(el.textContent, 65);
       if (label.length >= 3 && label.length <= 55 && /^(احجز|اشتر|اطلب|تواصل|ابدأ|اشترك|جرّب|احصل|تسوق|تسوّق|book|buy|shop|contact|subscribe|get started|start|request|try)/i.test(label)) actions.push(label);
     }
-    for (const a of Array.from(doc.querySelectorAll("a[href]"))) {
+    for (const a of anchors) {
       const href = a.getAttribute("href") ?? "";
       if (/^(mailto:|tel:)/i.test(href)) { contacts.push(clean(href.replace(/^(mailto:|tel:)/i, "").split("?")[0], 70)); continue; }
       try {
