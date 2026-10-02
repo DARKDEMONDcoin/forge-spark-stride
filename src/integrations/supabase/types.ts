@@ -461,7 +461,10 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
+          last_employee_message: string | null
+          last_employee_message_at: string | null
           title: string
+          unread_count: number
           updated_at: string
           workspace_id: string
         }
@@ -469,7 +472,10 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
+          last_employee_message?: string | null
+          last_employee_message_at?: string | null
           title?: string
+          unread_count?: number
           updated_at?: string
           workspace_id: string
         }
@@ -477,7 +483,10 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
+          last_employee_message?: string | null
+          last_employee_message_at?: string | null
           title?: string
+          unread_count?: number
           updated_at?: string
           workspace_id?: string
         }
@@ -2115,6 +2124,7 @@ export type Database = {
           profile: Json
           tone: string
           updated_at: string
+          use_website_context: boolean
           website: string | null
         }
         Insert: {
@@ -2129,6 +2139,7 @@ export type Database = {
           profile?: Json
           tone?: string
           updated_at?: string
+          use_website_context?: boolean
           website?: string | null
         }
         Update: {
@@ -2143,6 +2154,7 @@ export type Database = {
           profile?: Json
           tone?: string
           updated_at?: string
+          use_website_context?: boolean
           website?: string | null
         }
         Relationships: []
