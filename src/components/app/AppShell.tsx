@@ -10,7 +10,8 @@ import { useRegion } from "@/hooks/use-region";
 import { supabase } from "@/integrations/supabase/client";
 import { GUEST_EMAIL } from "@/lib/guest.functions";
 
-import { useProfile, useUpdateWorkspace, useWorkspace } from "@/lib/data";
+import { useEmployeeInbox, useProfile, useUpdateWorkspace, useWorkspace } from "@/lib/data";
+import { inboxTime } from "@/lib/inbox-time";
 import { UserAvatar } from "@/components/app/UserAvatar";
 import { SiteFavicon } from "@/components/app/SiteBadge";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,14 @@ function WorkspaceCard() {
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { data: inboxWorkspace } = useWorkspace();
+  const { data: inbox } = useEmployeeInbox(inboxWorkspace?.id);
+  // ترتيب واتساب: الأحدث رسالةً أولاً، ومن لم يراسلك بعد يبقى بترتيب الفريق.
+  const inboxOrder = [...team].sort((a, b) => {
+    const ta = inbox?.find((t) => t.employee_id === a.id)?.last_employee_message_at ?? "";
+    const tb = inbox?.find((t) => t.employee_id === b.id)?.last_employee_message_at ?? "";
+    return tb.localeCompare(ta);
+  });
 
   return (
     <div className="flex h-full flex-col gap-4 p-3">
