@@ -204,6 +204,8 @@ export function useEmployeeInbox(workspaceId?: string) {
   return useQuery({
     queryKey: ["employee-inbox", workspaceId],
     enabled: !!workspaceId,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
     queryFn: () =>
       must<Conversation[]>(
         supabase
