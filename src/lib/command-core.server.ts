@@ -134,7 +134,7 @@ async function draftPost(
       .from("brain_items")
       .select("title, body, kind")
       .eq("workspace_id", workspaceId)
-      .neq("used_by", "{}")
+      .not("used_by", "eq", "{}")
       .order("created_at", { ascending: false })
       .limit(8),
   ]);

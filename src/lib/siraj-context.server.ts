@@ -39,7 +39,7 @@ export async function sirajContext(client: Client, workspaceId: string): Promise
       .select("title, body, kind, meta")
       .eq("workspace_id", workspaceId)
       .in("kind", ["note", "learning"])
-      .neq("used_by", "{}")
+      .not("used_by", "eq", "{}")
       .limit(60),
     client
       .from("social_posts")

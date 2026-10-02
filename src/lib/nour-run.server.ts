@@ -785,7 +785,7 @@ export async function executeSkill(
 
   const [{ data: workspace }, { data: brain }, { data: linked }] = await Promise.all([
     client.from("workspaces").select("*").eq("id", params.workspaceId).maybeSingle(),
-    client.from("brain_items").select("title, body, kind").eq("workspace_id", params.workspaceId).neq("used_by", "{}"),
+    client.from("brain_items").select("title, body, kind").eq("workspace_id", params.workspaceId).not("used_by", "eq", "{}"),
     client
       .from("pipedream_accounts")
       .select("provider")
