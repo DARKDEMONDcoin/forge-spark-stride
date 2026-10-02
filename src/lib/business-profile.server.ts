@@ -31,7 +31,7 @@ export type BusinessProfile = {
   /** اقتراحات أول مهمة لكل موظف — مبنية على ما فُهم من الموقع. */
   firstTasks: { employeeId: string; title: string; prompt: string }[];
   /** التكاملات الأعلى قيمة لهذا النشاط تحديداً (بترتيب). */
-  recommendedIntegrations: { provider: string; why: string }[];
+  recommendedIntegrations: { provider: string; why: string; evidence?: string; score?: number }[];
   pagesRead: string[];
   confidence: "high" | "medium" | "low";
 };
@@ -119,6 +119,10 @@ type Signals = {
   platform: { label: string; provider: string } | null;
   country: string | null;
   addresses: string[];
+  trackers: { ga: boolean; metaPixel: boolean; googleAds: boolean; gtm: boolean };
+  commerce: boolean;
+  booking: boolean;
+  blog: boolean;
 };
 
 function collectSignals(html: string, base: string, headers: Headers): Signals {
@@ -235,7 +239,70 @@ function collectSignals(html: string, base: string, headers: Headers): Signals {
     platform,
     country,
     addresses: addresses.slice(0, 4),
+    trackers: {
+      ga: /gtag\(|googletagmanager\.com\/gtag|\bG-[A-Z0-9]{6,}\b|google-analytics\.com/i.test(html),
+      metaPixel: /fbq\(|connect\.facebook\.net\/[^"']*fbevents/i.test(html),
+      googleAds: /\bAW-\d{6,}\b|googleadservices\.com/i.test(html),
+      gtm: /\bGTM-[A-Z0-9]{4,}\b/i.test(html),
+    },
+    commerce:
+      jsonld.some((o) => /Product|Offer|Store/i.test(String(o["@type"] ?? ""))) ||
+      /add[-_ ]to[-_ ]cart|أضف إلى السلة|اضف للسلة|checkout|سلة التسوق/i.test(html),
+    booking: /احجز|حجز موعد|book (now|an appointment)|calendly|appointment/i.test(text),
+    blog: /\/blog|\/articles|المدونة|مقالات/i.test(html),
   };
+}
+
+const VALID_INTEGRATIONS = new Set(["instagram","facebook","tiktok","linkedin","x","youtube","google-business","gmail","calendar","whatsapp","hubspot","sheets","wordpress","shopify","webflow","ghost","search-console","analytics","meta-ads","google-ads"]);
+
+/** ترتيب الحسابات حسب أدلة حقيقية من الموقع نفسه، لا قائمة ثابتة. */
+export function rankIntegrations(
+  signals: Pick<Signals, "socials" | "contacts" | "platform" | "addresses" | "trackers" | "commerce" | "booking" | "blog">,
+  aiList: { provider: string; why: string }[],
+): { provider: string; why: string; evidence: string; score: number }[] {
+  const scores = new Map<string, { score: number; why: string; evidence: string[] }>();
+  const add = (provider: string, score: number, evidence: string, why: string) => {
+    if (!VALID_INTEGRATIONS.has(provider)) return;
+    const cur = scores.get(provider) ?? { score: 0, why, evidence: [] };
+    cur.score += score;
+    if (!cur.evidence.includes(evidence)) cur.evidence.push(evidence);
+    scores.set(provider, cur);
+  };
+  const socialKeys = new Set(signals.socials.map((s) => s.split(":")[0]!));
+  const socialWhy: Record<string, string> = {
+    instagram: "سِراج ينشر ويرد على تعليقات حسابك الموجود",
+    facebook: "سِراج ينشر على صفحتك ويتابع الرسائل",
+    tiktok: "سِراج يجهز وينشر فيديوهات قصيرة لحسابك",
+    linkedin: "سِراج ينشر محتوى مهني باسم نشاطك",
+    x: "سِراج ينشر ويتابع الإشارات لنشاطك",
+    youtube: "سِراج ينشر ويحلل أداء فيديوهاتك",
+  };
+  for (const k of socialKeys) if (socialWhy[k]) add(k, 50, `رابط حسابك موجود في موقعك`, socialWhy[k]);
+  if (socialKeys.has("whatsapp") || signals.contacts.some((c) => /^\+?\d{10,15}$/.test(c)))
+    add("whatsapp", socialKeys.has("whatsapp") ? 45 : 25, socialKeys.has("whatsapp") ? "زر واتساب موجود في موقعك" : "رقم هاتف ظاهر في موقعك", "سالم يرد على عملائك ويتابعهم");
+  if (signals.platform && ["wordpress", "shopify", "webflow", "ghost"].includes(signals.platform.provider))
+    add(signals.platform.provider, 70, `موقعك مبني على ${signals.platform.label}`, "نور تنشر عليه مباشرة وتحدّث الصفحات");
+  if (signals.addresses.length) add("google-business", 40, "عنوان فرع ظاهر في موقعك", "يظهر نشاطك في خرائط جوجل ويُرد على التقييمات");
+  if (signals.trackers.ga || signals.trackers.gtm) add("analytics", 45, "Google Analytics مركّب في موقعك", "آدم يقرأ زياراتك الحقيقية ويحوّلها لقرارات");
+  else add("analytics", 10, "لا يوجد قياس زيارات حالياً", "آدم يبدأ قياس زيارات موقعك");
+  add("search-console", signals.blog ? 30 : 20, signals.blog ? "موقعك فيه مدونة/مقالات" : "موقعك قابل للفهرسة في جوجل", "نور تتابع ترتيبك في جوجل وتحسنه");
+  if (signals.trackers.metaPixel) add("meta-ads", 45, "Meta Pixel مركّب في موقعك", "آدم يقيس ويحسن إعلانات فيسبوك وإنستجرام");
+  if (signals.trackers.googleAds) add("google-ads", 45, "وسم إعلانات جوجل مركّب في موقعك", "آدم يراقب حملاتك ويقلل الهدر");
+  if (signals.booking) add("calendar", 35, "موقعك يطلب حجز مواعيد", "أمَل تنظم الحجوزات وتذكّر العملاء");
+  if (signals.contacts.some((c) => c.includes("@"))) add("gmail", 25, "بريد تواصل ظاهر في موقعك", "أمَل ترتب البريد وترد على الاستفسارات");
+  if (signals.commerce) add("sheets", 10, "موقعك يبيع منتجات", "آدم يتابع الطلبات والأرقام في جدول");
+  // اقتراحات الذكاء الاصطناعي ترفع الترتيب قليلاً فقط ولا تكفي وحدها بدل الدليل.
+  for (const [i, item] of aiList.entries()) {
+    const cur = scores.get(item.provider);
+    if (cur) {
+      cur.score += Math.max(0, 12 - i * 3);
+      if (item.why) cur.why = item.why;
+    } else add(item.provider, Math.max(4, 10 - i * 2), "مقترح حسب طبيعة نشاطك", item.why || "مفيد لنشاطك");
+  }
+  return [...scores.entries()]
+    .map(([provider, v]) => ({ provider, why: v.why, evidence: v.evidence.slice(0, 2).join(" · "), score: v.score }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 }
 
 function extractJson<T>(text: string): T | null {
@@ -392,28 +459,14 @@ export async function profileWebsite(rawUrl: string): Promise<BusinessProfile> {
         .filter((t) => ["nour", "sonny", "dana", "eva", "sam", "adam"].includes(t.employeeId))
         .slice(0, 6)
     : [];
-  const integrations = Array.isArray(ai?.recommendedIntegrations)
+  const aiIntegrations = Array.isArray(ai?.recommendedIntegrations)
     ? (ai!.recommendedIntegrations as unknown[])
         .filter((i): i is { provider: string; why: string } =>
-          Boolean(
-            i &&
-            typeof i === "object" &&
-            typeof (i as Record<string, unknown>)["provider"] === "string",
-          ),
+          Boolean(i && typeof i === "object" && typeof (i as Record<string, unknown>)["provider"] === "string"),
         )
         .map((i) => ({ provider: str(i.provider, 30), why: str(i.why, 100) }))
-        .slice(0, 5)
     : [];
-  if (
-    signals.platform &&
-    ["wordpress", "shopify", "webflow", "ghost"].includes(signals.platform.provider) &&
-    !integrations.some((i) => i.provider === signals.platform!.provider)
-  ) {
-    integrations.unshift({
-      provider: signals.platform.provider,
-      why: `موقعك مبني على ${signals.platform.label} — نور تنشر عليه مباشرة`,
-    });
-  }
+  const integrations = rankIntegrations(signals, aiIntegrations);
 
   return {
     name,
