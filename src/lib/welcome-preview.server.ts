@@ -115,7 +115,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
   const pagesRead = [first.url];
   const seen = new Set([first.url]);
   for (const link of links.sort((a, b) => b.score - a.score)) {
-    const key = link.url.toString().split("#")[0];
+    const key = link.url.toString().split("#")[0] ?? link.url.toString();
     if (seen.has(key) || pagesRead.length >= 3) continue;
     seen.add(key);
     try {

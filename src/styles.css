@@ -47191,3 +47191,7 @@ html {
 @media (prefers-reduced-motion: reduce) { .welcome-appear { animation: none; } .welcome-progress-track > span { transition: none; } }
 
 @media (max-height: 700px) { .welcome-person:has(.welcome-sample) .welcome-portrait { display: none; } .welcome-person:has(.welcome-sample) .welcome-tasks { display: none; } .welcome-person:has(.welcome-sample) .welcome-sample { max-height: 24dvh; } }
+
+/* Keep the privacy choice above the wizard rather than over its navigation. */
+body:has(.welcome-stage) .sahl-cookie-consent { inset-block-end: auto; inset-block-start: max(3.6rem, env(safe-area-inset-top)); }
+@media (max-width: 767px) { body:has(.welcome-stage) .sahl-cookie-consent { inset-block-start: max(3.3rem, env(safe-area-inset-top)); } }
