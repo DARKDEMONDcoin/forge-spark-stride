@@ -18290,10 +18290,13 @@ section:has(> .integration-grid-wave) {
 
 .sahl-hero {
   position: relative;
-  min-height: 900px;
-  padding: 148px 0 104px;
+  min-height: 100svh;
+  padding: clamp(96px, 14vh, 148px) 0 clamp(48px, 8vh, 104px);
   overflow: hidden;
   background: var(--home-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .sahl-hero-ribbon {
   position: absolute;
@@ -18395,10 +18398,11 @@ section:has(> .integration-grid-wave) {
 .sahl-hero-layout {
   position: relative;
   z-index: 2;
-  min-height: 648px;
+  flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
   align-items: center;
+  align-content: center;
   gap: clamp(24px, 4vw, 64px);
 }
 .sahl-hero-copy {
@@ -18442,9 +18446,9 @@ section:has(> .integration-grid-wave) {
   font-style: normal;
 }
 .sahl-hero h1 {
-  margin-top: 34px;
+  margin-top: clamp(18px, 3.4vh, 34px);
   color: var(--home-ink);
-  font-size: clamp(4.4rem, 7.2vw, 7.5rem);
+  font-size: clamp(3rem, 5.6vw, 5.8rem);
   line-height: 1.02;
   font-weight: 600;
 }
@@ -18452,6 +18456,37 @@ section:has(> .integration-grid-wave) {
   color: var(--home-terracotta);
   font-style: normal;
   font-weight: 500;
+}
+/* Fit the whole intro inside the first screen on short desktop/laptop viewports */
+@media (min-width: 721px) and (max-height: 950px) {
+  .sahl-hero {
+    padding-block: clamp(76px, 11vh, 110px) clamp(24px, 4vh, 48px);
+  }
+  .sahl-hero h1 {
+    font-size: clamp(2.4rem, 7.6vh, 5rem);
+  }
+  .sahl-first-claim {
+    margin-top: clamp(12px, 2.4vh, 28px) !important;
+    font-size: clamp(1.05rem, 2.2vh, 1.4rem);
+  }
+  .sahl-lead {
+    margin-top: clamp(10px, 2vh, 20px) !important;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  .sahl-actions {
+    margin-top: clamp(16px, 3vh, 32px);
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 46px;
+  }
+  .sahl-hero-copy > small {
+    margin-top: clamp(10px, 1.8vh, 18px);
+  }
+  .sahl-device-frame {
+    padding-bottom: 12px;
+  }
 }
 .sahl-first-claim {
   width: fit-content;
@@ -20208,6 +20243,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero {
     min-height: 0;
     padding: 0 0 64px;
+    display: block;
   }
   .sahl-hero-ribbon {
     inset: -95px -160px auto 28%;
@@ -20226,7 +20262,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero-layout {
     min-height: 0;
     display: block;
-    padding-top: 214px;
+    padding-top: clamp(100px, 16vh, 170px);
   }
   .sahl-hero-copy {
     width: 100%;
@@ -20242,28 +20278,70 @@ section:has(> .integration-grid-wave) {
   }
   .sahl-hero h1 {
     max-width: 390px;
-    margin-top: 40px;
-    font-size: 3.7rem;
-    line-height: 1.07;
+    margin-top: clamp(16px, 3vh, 32px);
+    font-size: clamp(1.95rem, 8vw, 2.8rem);
+    line-height: 1.1;
+  }
+  .sahl-first-claim {
+    margin-top: clamp(12px, 2.2vh, 22px) !important;
+    font-size: clamp(1rem, 4.4vw, 1.2rem);
   }
   .sahl-lead {
-    margin-top: 24px !important;
-    font-size: 1rem;
-    line-height: 1.75;
+    margin-top: clamp(10px, 2vh, 20px) !important;
+    font-size: 0.98rem;
+    line-height: 1.7;
   }
   .sahl-actions {
     align-items: stretch;
     flex-direction: column;
+    margin-top: clamp(16px, 3vh, 28px);
   }
   .sahl-actions [data-slot="button"],
   .sahl-actions .inline-flex {
     width: 100%;
-    min-height: 55px;
+    min-height: 50px;
     font-size: 1rem;
   }
   .sahl-hero-copy > small {
     justify-content: center;
-    margin-top: 22px;
+    margin-top: clamp(10px, 2vh, 20px);
+  }
+  .sahl-hero-product {
+    margin-top: 40px;
+  }
+}
+/* Very short phones: keep the whole intro on the first screen */
+@media (max-width: 720px) and (max-height: 640px) {
+  .sahl-hero-layout {
+    padding-top: 96px;
+  }
+  .sahl-live-metric {
+    font-size: 0.74rem;
+  }
+  .sahl-hero h1 {
+    margin-top: 12px;
+    font-size: 1.8rem;
+  }
+  .sahl-first-claim {
+    margin-top: 10px !important;
+    font-size: 0.95rem;
+  }
+  .sahl-lead {
+    margin-top: 8px !important;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+  .sahl-actions {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 44px;
+    font-size: 0.92rem;
+  }
+  .sahl-hero-copy > small {
+    margin-top: 10px;
   }
   .sahl-trust .sahl-shell {
     width: 100%;
@@ -39440,10 +39518,13 @@ section:has(> .integration-grid-wave) {
 
 .sahl-hero {
   position: relative;
-  min-height: 900px;
-  padding: 148px 0 104px;
+  min-height: 100svh;
+  padding: clamp(96px, 14vh, 148px) 0 clamp(48px, 8vh, 104px);
   overflow: hidden;
   background: var(--home-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .sahl-hero-ribbon {
   position: absolute;
@@ -39545,10 +39626,11 @@ section:has(> .integration-grid-wave) {
 .sahl-hero-layout {
   position: relative;
   z-index: 2;
-  min-height: 648px;
+  flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
   align-items: center;
+  align-content: center;
   gap: clamp(24px, 4vw, 64px);
 }
 .sahl-hero-copy {
@@ -39592,9 +39674,9 @@ section:has(> .integration-grid-wave) {
   font-style: normal;
 }
 .sahl-hero h1 {
-  margin-top: 34px;
+  margin-top: clamp(18px, 3.4vh, 34px);
   color: var(--home-ink);
-  font-size: clamp(4.4rem, 7.2vw, 7.5rem);
+  font-size: clamp(3rem, 5.6vw, 5.8rem);
   line-height: 1.02;
   font-weight: 600;
 }
@@ -39602,6 +39684,37 @@ section:has(> .integration-grid-wave) {
   color: var(--home-terracotta);
   font-style: normal;
   font-weight: 500;
+}
+/* Fit the whole intro inside the first screen on short desktop/laptop viewports */
+@media (min-width: 721px) and (max-height: 950px) {
+  .sahl-hero {
+    padding-block: clamp(76px, 11vh, 110px) clamp(24px, 4vh, 48px);
+  }
+  .sahl-hero h1 {
+    font-size: clamp(2.4rem, 7.6vh, 5rem);
+  }
+  .sahl-first-claim {
+    margin-top: clamp(12px, 2.4vh, 28px) !important;
+    font-size: clamp(1.05rem, 2.2vh, 1.4rem);
+  }
+  .sahl-lead {
+    margin-top: clamp(10px, 2vh, 20px) !important;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  .sahl-actions {
+    margin-top: clamp(16px, 3vh, 32px);
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 46px;
+  }
+  .sahl-hero-copy > small {
+    margin-top: clamp(10px, 1.8vh, 18px);
+  }
+  .sahl-device-frame {
+    padding-bottom: 12px;
+  }
 }
 .sahl-first-claim {
   width: fit-content;
@@ -41358,6 +41471,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero {
     min-height: 0;
     padding: 0 0 64px;
+    display: block;
   }
   .sahl-hero-ribbon {
     inset: -95px -160px auto 28%;
@@ -41376,7 +41490,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero-layout {
     min-height: 0;
     display: block;
-    padding-top: 214px;
+    padding-top: clamp(100px, 16vh, 170px);
   }
   .sahl-hero-copy {
     width: 100%;
@@ -41392,28 +41506,67 @@ section:has(> .integration-grid-wave) {
   }
   .sahl-hero h1 {
     max-width: 390px;
-    margin-top: 40px;
-    font-size: 3.7rem;
-    line-height: 1.07;
+    margin-top: clamp(16px, 3vh, 32px);
+    font-size: clamp(1.95rem, 8vw, 2.8rem);
+    line-height: 1.1;
+  }
+  .sahl-first-claim {
+    margin-top: clamp(12px, 2.2vh, 22px) !important;
+    font-size: clamp(1rem, 4.4vw, 1.2rem);
   }
   .sahl-lead {
-    margin-top: 24px !important;
-    font-size: 1rem;
-    line-height: 1.75;
+    margin-top: clamp(10px, 2vh, 20px) !important;
+    font-size: 0.98rem;
+    line-height: 1.7;
   }
   .sahl-actions {
     align-items: stretch;
     flex-direction: column;
+    margin-top: clamp(16px, 3vh, 28px);
   }
   .sahl-actions [data-slot="button"],
   .sahl-actions .inline-flex {
     width: 100%;
-    min-height: 55px;
+    min-height: 50px;
     font-size: 1rem;
   }
   .sahl-hero-copy > small {
     justify-content: center;
-    margin-top: 22px;
+    margin-top: clamp(10px, 2vh, 20px);
+  }
+}
+/* Very short phones: keep the whole intro on the first screen */
+@media (max-width: 720px) and (max-height: 640px) {
+  .sahl-hero-layout {
+    padding-top: 96px;
+  }
+  .sahl-live-metric {
+    font-size: 0.74rem;
+  }
+  .sahl-hero h1 {
+    margin-top: 12px;
+    font-size: 1.8rem;
+  }
+  .sahl-first-claim {
+    margin-top: 10px !important;
+    font-size: 0.95rem;
+  }
+  .sahl-lead {
+    margin-top: 8px !important;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+  .sahl-actions {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 44px;
+    font-size: 0.92rem;
+  }
+  .sahl-hero-copy > small {
+    margin-top: 10px;
   }
   .sahl-trust .sahl-shell {
     width: 100%;
