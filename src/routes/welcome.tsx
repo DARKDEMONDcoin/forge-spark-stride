@@ -116,7 +116,7 @@ function Welcome() {
           <h1 className="welcome-title">ما مجال نشاطك؟</h1>
           <p className="welcome-lead">اختر المجال الأقرب إليك. يمكنك تغييره وإضافة التفاصيل بعد التسجيل.</p>
           <label className="mx-auto mt-8 block max-w-xl"><span className="sr-only">ابحث عن المجال</span><input className="welcome-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن مجالك…" /></label>
-          <div className="mt-6 grid max-h-80 grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3">{filtered.map((item) => <Button key={item} type="button" variant="outline" aria-pressed={industry === item} onClick={() => setIndustry(item)} className={cn("welcome-industry", industry === item && "welcome-industry-active")}>{item}{industry === item && <Check className="size-4 shrink-0" />}</Button>)}</div>
+          <div className="mt-6 grid max-h-80 grid-cols-1 min-[380px]:grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3">{filtered.map((item) => <Button key={item} type="button" variant="outline" aria-pressed={industry === item} onClick={() => setIndustry(item)} className={cn("welcome-industry", industry === item && "welcome-industry-active")}>{item}{industry === item && <Check className="size-4 shrink-0" />}</Button>)}</div>
           {!filtered.length && <p className="mt-6 text-sm text-muted-foreground">لم تجد مجالك؟ اكتبه بنفسك بالأسفل.</p>}
           <label className="mt-6 block text-start text-sm font-bold">أو اكتب مجالك بنفسك<input className="welcome-input mt-2" value={industries.includes(industry) ? "" : industry} onChange={(e) => setIndustry(e.target.value)} placeholder="مثال: استشارات هندسية" /></label>
         </section>}

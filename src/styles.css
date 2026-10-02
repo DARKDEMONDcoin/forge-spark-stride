@@ -47135,3 +47135,19 @@ html {
 .welcome-sample { border-right: 3px solid var(--primary); background: var(--secondary); padding: 1rem 1.25rem; }
 @media (max-width: 767px) { .welcome-portrait { width: min(100%, 18rem); aspect-ratio: 1; margin-inline: auto; } .welcome-person .welcome-title { font-size: 2rem; } }
 @media (prefers-reduced-motion: reduce) { .welcome-appear { animation: none; } }
+
+/* Scoped improvements for Welcome Flow */
+@media (max-width: 380px) {
+  .welcome-choice { padding: 0.75rem 1rem; min-height: 4rem; }
+  .welcome-choice strong { font-size: 0.95rem; }
+  .welcome-lead { font-size: 0.9rem; line-height: 1.6; }
+  .welcome-header { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .welcome-industry { font-size: 0.85rem; padding: 0.6rem; }
+}
+
+@media (max-height: 670px) {
+  .welcome-appear { mt: 1rem; }
+  .welcome-title { margin-top: 0.5rem; }
+  .welcome-person .welcome-title { font-size: 1.5rem !important; }
+  .welcome-portrait { width: min(100%, 12rem); }
+}
