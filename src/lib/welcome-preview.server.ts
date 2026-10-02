@@ -324,6 +324,7 @@ export async function readSite(raw: string): Promise<{ preview: WelcomePreview; 
   const logo = asLogo(ldLogo) || asLogo(iconLinks[0]?.href) || absHttps("/favicon.ico", first.url);
    const pageImages = Array.from(document.querySelectorAll("main img, article img, img")).slice(0, 80)
      .filter((el) => !el.hasAttribute(":src") && !/hidden|invisible|opacity-0/.test(el.getAttribute("class") ?? ""))
+     .sort((a, b) => Number(/hero|banner/i.test(`${b.getAttribute("src")} ${b.getAttribute("class")}`)) - Number(/hero|banner/i.test(`${a.getAttribute("src")} ${a.getAttribute("class")}`)))
      .map((el) => el.getAttribute("src") || el.getAttribute("data-src"));
    const imageCandidates = [meta('meta[property="og:image:secure_url"]'), meta('meta[property="og:image"]'), meta('meta[name="twitter:image"]'), document.querySelector('link[rel="image_src"]')?.getAttribute("href"), ...pageImages];
    const image = imageCandidates.map((candidate) => absHttps(candidate, first.url)).find((candidate) => candidate && !/\.(svg|gif)(\?|$)/i.test(candidate) && !/(logo|icon|avatar|pixel|tracking|sprite)/i.test(new URL(candidate).pathname)) || "";
