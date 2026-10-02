@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getWelcomePreview } from "@/lib/welcome-preview.functions";
 import type { WelcomePreview } from "@/lib/welcome-preview.server";
+import { getWelcomeRecommendation } from "@/lib/welcome-recommendation.functions";
+import type { WelcomeRecommendation } from "@/lib/welcome-recommendation.server";
 
 const draftKey = "sahl-welcome-draft";
 export type WelcomeDraft = { purpose: string; website: string; industry: string; step?: number };
@@ -40,6 +42,7 @@ export const Route = createFileRoute("/welcome")({
 function Welcome() {
   const { plan } = Route.useSearch();
   const inspect = useServerFn(getWelcomePreview);
+  const recommend = useServerFn(getWelcomeRecommendation);
   const [step, setStep] = useState(0);
   const [purpose, setPurpose] = useState("");
   const [website, setWebsite] = useState("");
@@ -51,6 +54,8 @@ function Welcome() {
   const [findingTab, setFindingTab] = useState<"business" | "reach" | "site">("business");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [recommendation, setRecommendation] = useState<WelcomeRecommendation | null>(null);
+  const [recommendationState, setRecommendationState] = useState<"loading" | "ready" | "fallback">("loading");
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(draftKey);
@@ -73,9 +78,29 @@ function Welcome() {
   const back = () => setStep((current) => Math.max(current - 1, 0));
   const member = step >= 2 && step <= 7 ? team[step - 2] : undefined;
   const description = member ? descriptions[member.id] : undefined;
-  const filtered = industries.filter((item) => item.includes(query.trim()));
-  const canContinue = step !== 0 || Boolean(purpose);
+  const filtered = industries.filter((item) => item.includes(query.trim()) || item === "أخرى");
+  const customIndustry = Boolean(industry) && !industries.includes(industry);
+  const industryValid = industry !== "أخرى" && z.string().trim().min(2).max(60).regex(/^[\p{L}\p{N}\s\-،&/().]+$/u).safeParse(industry).success;
+  const canContinue = step === 0 ? Boolean(purpose) : step === 8 ? industryValid : true;
   const showPreview = preview && preview.url === website.trim();
+  useEffect(() => {
+    if (step !== 9 || !industryValid || !ready) return;
+    let cancelled = false;
+    setRecommendation(null);
+    setRecommendationState("loading");
+    const input = {
+      industry: industry.trim(),
+      purpose: (purpose === "job" || purpose === "personal" ? purpose : "business") as "business" | "job" | "personal",
+      ...(showPreview ? { site: { name: preview.name, summary: preview.summary, products: preview.products.slice(0, 3), actions: preview.actions.slice(0, 2), platform: preview.platform } } : {}),
+    };
+    recommend({ data: input }).then((result) => {
+      if (!cancelled) { setRecommendation(result); setRecommendationState("ready"); }
+    }).catch(async () => {
+      const { fallbackRecommendation } = await import("@/lib/welcome-recommendation-fallback");
+      if (!cancelled) { setRecommendation(fallbackRecommendation(input)); setRecommendationState("fallback"); }
+    });
+    return () => { cancelled = true; };
+  }, [step, industry, purpose, preview, website, ready]);
 
   async function scan() {
     if (!website.trim() || loading) return;
@@ -116,11 +141,11 @@ function Welcome() {
           <Button type="button" variant="ghost" className="welcome-skip" onClick={() => { setWebsite(""); setPreview(null); next(); }}>ليس لدي موقع الآن <ChevronLeft /></Button>
         </section>}
         {member && description && <section className="welcome-person"><div className="welcome-person-copy"><span className="welcome-eyebrow">فريقك · {step - 1} / ٦</span><p className="welcome-role">{member.role}</p><h1 className="welcome-title">{member.name}، إلى جانبك.</h1><p className="welcome-person-lead">{description.headline}</p><ul className="welcome-tasks">{description.tasks.map((task) => <li key={task}><Check className="size-4 text-jade" />{task}</li>)}</ul><Button type="button" variant="outline" className="welcome-example-toggle" onClick={() => setExample(!example)} aria-expanded={example}>{example ? "إخفاء المثال" : "شاهد مثالًا"} {example ? <X /> : <ArrowLeft />}</Button>{example && <div className="welcome-sample" role="region" aria-label={`مثال من ${member.name}`}><span className="text-xs font-bold text-primary">مثال توضيحي · {member.sample[0]?.label}</span><p>{member.sample[0]?.body}</p><small>مثال غير مخصص لنشاطك.</small></div>}</div><div className="welcome-portrait"><Portrait memberId={member.id} name={member.name} eager className="h-full w-full" /><span className="welcome-portrait-label">{member.name} <span>· {member.role}</span></span></div></section>}
-        {step === 8 && <section className="welcome-centered"><span className="welcome-eyebrow"><Search className="size-4" /> مجالك</span><h1 className="welcome-title">في أي مجال تعمل؟</h1><p className="welcome-lead">اختر الأقرب إليك؛ يمكنك تعديله لاحقًا.</p><label className="welcome-industry-search"><span className="sr-only">ابحث عن المجال</span><Search className="size-4" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن مجالك…" /></label><div className="welcome-industries">{filtered.map((item) => <Button key={item} type="button" variant="outline" aria-pressed={industry === item} onClick={() => setIndustry(item)} className={cn("welcome-industry", industry === item && "welcome-industry-active")}>{item}{industry === item && <Check className="size-4 shrink-0" />}</Button>)}</div><label className="welcome-custom-label">أو اكتب مجالك بنفسك<input className="welcome-input" value={industries.includes(industry) ? "" : industry} onChange={(e) => setIndustry(e.target.value)} placeholder="مثال: استشارات هندسية" /></label></section>}
-         {step === 9 && <section className="welcome-centered"><span className="welcome-eyebrow"><Sparkles className="size-4" /> نقطة انطلاقك</span><h1 className="welcome-title">خطوة أقرب إلى {industry || "هدفك"}.</h1><p className="welcome-lead">{showPreview ? `من صفحات ${preview.name}، وجدنا إشارات تساعد فريقك على البدء. ستراجع التفاصيل وتكملها بعد التسجيل.` : "اخترنا لك بداية مرنة. بعد التسجيل يمكن لفريقك فهم نشاطك بالتفصيل."}</p><div className="welcome-checklist">{[showPreview ? `قرأنا ${preview.pagesRead.length} صفحات عامة من موقعك` : "تحديد مجال عملك", showPreview && preview.products.length ? `نور وسِراج: ${preview.products[0]}` : "اختيار ما تريد إنجازه", showPreview && preview.actions.length ? `سالم: وجدنا «${preview.actions[0]}» في موقعك` : "مراجعتك قبل أي نشر أو إرسال"].map((item, i) => <div key={item}><span>{String(i + 1).padStart(2, "0")}</span><strong>{item}</strong><Check className="size-4 text-jade" /></div>)}</div><p className="welcome-disclaimer">لا نزعم مقارنة بالسوق أو تحليل بيانات خاصة دون ربطها.</p></section>}
+        {step === 8 && <section className="welcome-centered"><span className="welcome-eyebrow"><Search className="size-4" /> مجالك</span><h1 className="welcome-title">في أي مجال تعمل؟</h1><p className="welcome-lead">اختر مجالك لنقترح أول خطوة تناسبه.</p><label className="welcome-industry-search"><span className="sr-only">ابحث عن المجال</span><Search className="size-4" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن مجالك…" maxLength={60} /></label><div className="welcome-industries">{filtered.map((item) => <Button key={item} type="button" variant="outline" aria-pressed={industry === item || (item === "أخرى" && customIndustry)} onClick={() => { if (item === "أخرى") { setIndustry("أخرى"); } else { setIndustry(item); next(); } }} className={cn("welcome-industry", (industry === item || (item === "أخرى" && customIndustry)) && "welcome-industry-active")}>{item}{(industry === item || (item === "أخرى" && customIndustry)) && <Check className="size-4 shrink-0" />}</Button>)}</div>{(industry === "أخرى" || customIndustry) && <label className="welcome-custom-label" htmlFor="welcome-custom-industry">ما مجالك تحديدًا؟<input id="welcome-custom-industry" className="welcome-input" autoFocus value={industry === "أخرى" ? "" : industry} onChange={(e) => setIndustry(e.target.value.slice(0, 60))} maxLength={60} placeholder="مثال: استشارات هندسية" />{industry !== "أخرى" && industry.trim() && !industryValid && <span className="welcome-error">اكتب مجالًا من حرفين إلى ٦٠ حرفًا، دون رموز خاصة.</span>}</label>}</section>}
+         {step === 9 && <section className="welcome-centered welcome-recommendation"><span className="welcome-eyebrow"><Sparkles className="size-4" /> بداية مناسبة لمجالك</span><h1 className="welcome-title">بدايتك في {industry}.</h1>{recommendationState === "loading" ? <div className="welcome-recommend-loading" role="status"><Loader2 className="size-6 animate-spin text-primary" /><p>نرتب لك أول خطوات تناسب مجالك{showPreview ? " وما وجدناه في موقعك" : ""}…</p></div> : recommendation && <><p className="welcome-lead">{recommendation.insight}</p><div className="welcome-recommend-actions">{recommendation.actions.map((item, i) => <div key={`${item.employee}-${i}`}><span className="welcome-recommend-number">{String(i + 1).padStart(2, "0")}</span><strong>{item.employee}</strong><p>{item.text}</p></div>)}</div><p className="welcome-first-move"><Sparkles className="size-4 shrink-0" />{recommendation.firstMove}</p><p className="welcome-disclaimer">{recommendationState === "fallback" ? "تعذّر إعداد توصية شخصية الآن؛ هذه بداية أولية، ويكتمل فهم نشاطك مع الفريق بعد التسجيل. " : ""}لم نطّلع على بيانات حساباتك أو نتائج منافسين. لا نشر أو إرسال دون موافقتك.</p></>}</section>}
         {step === 10 && <section className="welcome-centered"><span className="welcome-eyebrow"><Check className="size-4" /> البداية الحقيقية</span><h1 className="welcome-title">فريقك ينتظرك.</h1><p className="welcome-lead">ستة متخصصين يعملون معك، وأنت صاحب القرار دائمًا.</p><div className="welcome-team">{team.map((person) => <div key={person.id}><Portrait memberId={person.id} name={person.name} className="size-9 rounded-full" /><span>{person.name}</span></div>)}</div><Button asChild className="welcome-signup"><Link to="/auth" search={{ mode: "signup", plan }}>أنشئ حسابك وقابل فريقك <ArrowLeft /></Link></Button><p className="welcome-trust"><ShieldCheck className="size-4" /> لن يُنشر أو يُرسل شيء دون موافقتك</p></section>}
       </div>
-      <footer className="welcome-footer"><Button type="button" variant="ghost" disabled={step === 0} onClick={back} className="welcome-back"><ArrowRight /> السابق</Button><span className="welcome-footer-dots" aria-hidden="true">{Array.from({ length: 11 }, (_, i) => <span key={i} className={i === step ? "is-active" : ""} />)}</span>{step < lastStep ? <Button type="button" disabled={!canContinue || loading} onClick={next} className="welcome-next">متابعة <ArrowLeft /></Button> : <span className="welcome-footer-spacer" />}</footer>
+       <footer className="welcome-footer"><Button type="button" variant="ghost" disabled={step === 0} onClick={back} className="welcome-back"><ArrowRight /> السابق</Button><span className="welcome-footer-dots" aria-hidden="true">{Array.from({ length: 11 }, (_, i) => <span key={i} className={i === step ? "is-active" : ""} />)}</span>{step < lastStep ? <Button type="button" disabled={!canContinue || loading || (step === 9 && recommendationState === "loading")} onClick={next} className="welcome-next">متابعة <ArrowLeft /></Button> : <span className="welcome-footer-spacer" />}</footer>
     </main>
   </div>;
 }
