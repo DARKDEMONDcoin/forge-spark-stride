@@ -29,3 +29,5 @@
 - Public pre-signup industry recommendations are short, rate-limited, validated AI suggestions grounded in a selected sector and optional public-site evidence; no account data or market metrics are implied. Why: visitors get useful next actions without confusing hypotheses with verified findings.
 - Welcome purpose variants live in a browser-safe shared module and inform every tour screen and recommendation path; this prevents business-only claims for employees and personal explorers.
 - Employee chat toolbelt derives its capability catalog from the shared skill definitions, so natural-language requests stay aligned with each employee's skill menu.
+- Each workspace has exactly one persistent conversation per employee across web and Telegram; this keeps history and unread state WhatsApp-like.
+- Website context is controlled by one workspace-level switch that every employee execution path must honor.

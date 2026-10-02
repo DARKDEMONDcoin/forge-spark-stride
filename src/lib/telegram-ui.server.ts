@@ -355,8 +355,7 @@ export async function viewHistory(ctx: UiCtx, page: number, employee?: string) {
   if (page > 0) nav.push({ text: "« الأحدث", callback_data: `${base}${page - 1}` });
   if (more) nav.push({ text: "الأقدم »", callback_data: `${base}${page + 1}` });
   if (nav.length) kb.push(nav);
-  if (employee) kb.push([{ text: `✨ محادثة جديدة مع ${empName(employee)}`, callback_data: `hn:${employee}` }]);
-  else {
+  if (!employee) {
     const filters: Button[] = TEAM.map((m) => ({ text: m.name, callback_data: `he:${m.id}:0` }));
     kb.push(filters.slice(0, 3), filters.slice(3));
   }
@@ -408,10 +407,7 @@ async function openConversation(ctx: UiCtx, convId: string) {
       "✅ المحادثة دي بقت الحالية — اكتب رسالتك وهتكمل فيها (وهتظهر في الموقع كمان).",
     ].join("\n"),
     [
-      [
-        { text: "✨ محادثة جديدة", callback_data: `hn:${conv.employee_id}` },
-        { text: `🧰 قدرات ${empName(conv.employee_id)}`, callback_data: `k:${conv.employee_id}:0` },
-      ],
+      [{ text: `🧰 قدرات ${empName(conv.employee_id)}`, callback_data: `k:${conv.employee_id}:0` }],
       back("h:0"),
     ],
   );
@@ -422,7 +418,10 @@ async function newConversation(ctx: UiCtx, emp: string) {
   if (!m) return viewTeam(ctx);
   const { data } = await ctx.admin
     .from("conversations")
-    .insert({ workspace_id: ctx.link.workspace_id, employee_id: m.id, title: "محادثة تيليجرام" })
+    .upsert(
+      { workspace_id: ctx.link.workspace_id, employee_id: m.id, title: "المحادثة" },
+      { onConflict: "workspace_id,employee_id" },
+    )
     .select("id")
     .single();
   if (!data) return show(ctx, "تعذّر بدء محادثة جديدة.", [back()]);
@@ -430,7 +429,7 @@ async function newConversation(ctx: UiCtx, emp: string) {
   await ctx.admin.from("command_links").update({ conversation_ids: ids, active_employee: m.id }).eq("id", ctx.link.id);
   ctx.link.conversation_ids = ids;
   ctx.link.active_employee = m.id;
-  await show(ctx, `✨ بدأنا محادثة جديدة مع <b>${m.name}</b> — ابعت طلبك.`, [back("tm")]);
+  await show(ctx, `💬 فتحت محادثتك مع <b>${m.name}</b> — ابعت طلبك.`, [back("tm")]);
 }
 
 // ── المهام والموافقات ──

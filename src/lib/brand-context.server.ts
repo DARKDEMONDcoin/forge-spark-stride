@@ -10,6 +10,7 @@ type WorkspaceBrand = {
   country?: string | null;
   website?: string | null;
   profile?: unknown;
+  use_website_context?: boolean | null;
 };
 
 const unsafeRoleLine = /^\s*(system|assistant|developer|user)\s*:/gim;
@@ -31,6 +32,7 @@ export function buildBrandContext(
   query: string,
   limit = 10,
 ): string {
+  if (workspace.use_website_context === false) return "";
   const cleaned = items
     .filter((item) => item.title?.trim())
     .map((item) => ({
