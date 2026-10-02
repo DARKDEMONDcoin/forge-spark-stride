@@ -45252,7 +45252,8 @@ html {
     width: 100%;
     max-height: none;
     transform: none;
-    padding: 16px 20px calc(96px + env(safe-area-inset-bottom));
+    z-index: 160;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
     gap: 10px;
     overflow-y: auto;
     overscroll-behavior: contain;
