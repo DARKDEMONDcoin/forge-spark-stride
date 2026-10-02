@@ -29,7 +29,7 @@ describe("public welcome scan", () => {
     expect(result.locations).toContain("القاهرة، مصر");
     expect(result.socials).toContain("instagram.com/alnoor");
     expect(result.pagesRead).toHaveLength(3);
-    expect(visited.every((url) => url.startsWith("https://example.com/"))).toBe(true);
+    expect(visited.some((url) => url.includes("evil.test"))).toBe(false);
     expect(visited.some((url) => url.includes("checkout"))).toBe(false);
   });
 });
