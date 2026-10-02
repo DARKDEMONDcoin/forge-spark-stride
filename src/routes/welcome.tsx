@@ -74,7 +74,7 @@ function Welcome() {
   const description = member ? descriptions[member.id] : undefined;
   const filtered = industries.filter((item) => item.includes(query.trim()));
   const canContinue = step !== 0 || Boolean(purpose);
-  const showPreview = preview && (preview.url === website.trim() || preview.url.replace(/^https?:\/\//, "").replace(/\/$/, "") === website.trim().replace(/^https?:\/\//, "").replace(/\/$/, ""));
+  const showPreview = preview && preview.url === website.trim();
 
   async function scan() {
     if (!website.trim() || loading) return;
@@ -101,7 +101,7 @@ function Welcome() {
           <span className="welcome-eyebrow"><Sparkles className="size-4" /> البداية</span>
           <h1 className="welcome-title">فريقك يبدأ من قصتك.</h1>
           <p className="welcome-lead">كيف تريد أن يساعدك سهل؟</p>
-          <div className="welcome-choices">{[["business", "لإدارة مشروعي", "تسويق ومبيعات وتنظيم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف الإمكانيات", "تعرّف على الفريق ثم قرر"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => setPurpose(value)} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-sm sm:text-base">{label}</strong><span className="block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}</div>
+          <div className="welcome-choices">{[["business", "لإدارة مشروعي", "تسويق ومبيعات وتنظيم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف الإمكانيات", "تعرّف على الفريق ثم قرر"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => setPurpose(value ?? "")} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-sm sm:text-base">{label}</strong><span className="block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}</div>
         </section>}
         {step === 1 && <section className="welcome-centered welcome-website">
           <span className="welcome-eyebrow"><Globe2 className="size-4" /> اعرف نشاطك</span>
