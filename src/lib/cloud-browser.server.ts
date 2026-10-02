@@ -91,7 +91,7 @@ export function browseFailureReason(url: string): string | null {
 }
 
 /** يفتح الرابط في متصفح سحابي حقيقي ويعيد النص المعروض ولقطة شاشة. للقراءة فقط. */
-export async function browsePage(url: string, opts: { screenshot?: boolean } = {}): Promise<BrowsedPage | null> {
+export async function browsePage(url: string, opts: { screenshot?: boolean; html?: boolean } = {}): Promise<(BrowsedPage & { html?: string }) | null> {
   if (!/^https?:\/\//i.test(url)) return fail(url, "الرابط غير صالح (يجب أن يبدأ بـ http أو https).");
   failures.delete(url);
   const s = await getSecrets(["BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID"] as const).catch(() => null);
