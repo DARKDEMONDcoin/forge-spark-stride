@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, Globe2, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { team } from "@/data/team";
@@ -36,7 +36,6 @@ export const Route = createFileRoute("/welcome")({
 
 function Welcome() {
   const { plan } = Route.useSearch();
-  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [purpose, setPurpose] = useState("");
   const [website, setWebsite] = useState("");
