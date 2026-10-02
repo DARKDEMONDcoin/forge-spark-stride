@@ -18448,7 +18448,7 @@ section:has(> .integration-grid-wave) {
 .sahl-hero h1 {
   margin-top: clamp(18px, 3.4vh, 34px);
   color: var(--home-ink);
-  font-size: clamp(3rem, 6.4vw, 7.5rem);
+  font-size: clamp(3rem, 5.6vw, 5.8rem);
   line-height: 1.02;
   font-weight: 600;
 }
@@ -18458,12 +18458,12 @@ section:has(> .integration-grid-wave) {
   font-weight: 500;
 }
 /* Fit the whole intro inside the first screen on short desktop/laptop viewports */
-@media (min-width: 721px) and (max-height: 860px) {
+@media (min-width: 721px) and (max-height: 950px) {
   .sahl-hero {
-    padding-block: clamp(84px, 12vh, 120px) clamp(32px, 5vh, 64px);
+    padding-block: clamp(76px, 11vh, 110px) clamp(24px, 4vh, 48px);
   }
   .sahl-hero h1 {
-    font-size: clamp(2.6rem, 8.6vh, 5.4rem);
+    font-size: clamp(2.4rem, 7.6vh, 5rem);
   }
   .sahl-first-claim {
     margin-top: clamp(12px, 2.4vh, 28px) !important;
@@ -20262,7 +20262,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero-layout {
     min-height: 0;
     display: block;
-    padding-top: clamp(118px, 18vh, 180px);
+    padding-top: clamp(100px, 16vh, 170px);
   }
   .sahl-hero-copy {
     width: 100%;
@@ -20279,7 +20279,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero h1 {
     max-width: 390px;
     margin-top: clamp(16px, 3vh, 32px);
-    font-size: clamp(2.05rem, 8.6vw, 3rem);
+    font-size: clamp(1.95rem, 8vw, 2.8rem);
     line-height: 1.1;
   }
   .sahl-first-claim {
@@ -20308,6 +20308,40 @@ section:has(> .integration-grid-wave) {
   }
   .sahl-hero-product {
     margin-top: 40px;
+  }
+}
+/* Very short phones: keep the whole intro on the first screen */
+@media (max-width: 720px) and (max-height: 640px) {
+  .sahl-hero-layout {
+    padding-top: 96px;
+  }
+  .sahl-live-metric {
+    font-size: 0.74rem;
+  }
+  .sahl-hero h1 {
+    margin-top: 12px;
+    font-size: 1.8rem;
+  }
+  .sahl-first-claim {
+    margin-top: 10px !important;
+    font-size: 0.95rem;
+  }
+  .sahl-lead {
+    margin-top: 8px !important;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+  .sahl-actions {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 44px;
+    font-size: 0.92rem;
+  }
+  .sahl-hero-copy > small {
+    margin-top: 10px;
   }
   .sahl-trust .sahl-shell {
     width: 100%;
