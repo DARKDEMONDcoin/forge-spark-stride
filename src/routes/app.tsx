@@ -49,7 +49,7 @@ export const Route = createFileRoute("/app")({
     <div className="grid min-h-dvh place-items-center bg-background px-6 text-center">
       <div className="max-w-md">
         <p className="font-display text-lg font-black">تعذّر فتح مساحة العمل</p>
-        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{error instanceof Error ? error.message : String(error)}</p>
         <Link
           to="/app"
           className="mt-4 inline-block rounded-xl bg-foreground px-4 py-2 text-sm font-bold text-background"
