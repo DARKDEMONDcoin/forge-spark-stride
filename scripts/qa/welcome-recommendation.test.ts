@@ -18,7 +18,7 @@ describe("welcome recommendations", () => {
     expect(coffee.insight).toContain("المطاعم والمقاهي");
   });
   test("references only supplied public evidence", () => {
-    const result = fallbackRecommendation({ industry: "الأزياء", purpose: "job", site: { name: "متجر", summary: "", products: ["عبايات"], actions: ["تسوق الآن"], platform: "" } });
+    const result = fallbackRecommendation({ industry: "الأزياء", purpose: "business", site: { name: "متجر", summary: "", products: ["عبايات"], actions: ["تسوق الآن"], platform: "" } });
     expect(result.actions[0]?.text).toContain("عبايات");
     expect(result.actions[2]?.text).toContain("تسوق الآن");
   });
