@@ -11,10 +11,13 @@ import { getWelcomePreview } from "@/lib/welcome-preview.functions";
 import type { WelcomePreview } from "@/lib/welcome-preview.server";
 import { getWelcomeRecommendation } from "@/lib/welcome-recommendation.functions";
 import type { WelcomeRecommendation } from "@/lib/welcome-recommendation.server";
+import { welcomeIndustries } from "@/lib/welcome-industries";
 
 const draftKey = "sahl-welcome-draft";
 export type WelcomeDraft = { purpose: string; website: string; industry: string; step?: number };
-const industries = ["التجارة الإلكترونية", "المطاعم والمقاهي", "العيادات والرعاية الصحية", "العقارات", "التعليم والتدريب", "التقنية والتطبيقات", "الخدمات المهنية", "السياحة والضيافة", "التجميل والعناية", "المال والمحاسبة", "التسويق والإعلان", "الأزياء والمنتجات", "الجمعيات والمبادرات", "صناعة المحتوى", "أخرى"];
+const industries = welcomeIndustries;
+const scanStages = ["نفتح موقعك", "نقرأ الصفحات المهمة", "نفهم نشاطك وجمهورك", "نجهّز خطة فريقك"];
+type FindingTab = "offer" | "brand" | "team" | "reach";
 const descriptions: Record<string, { headline: string; tasks: string[] }> = {
   sonny: { headline: "محتوى ينطلق من فكرتك، ولا يُنشر إلا بموافقتك.", tasks: ["خطة محتوى تناسب نشاطك", "منشورات بلهجة جمهورك", "مواد جاهزة لمراجعتك"] },
   eva: { headline: "أمَل ترتب يومك، وتترك القرار لك.", tasks: ["ما يحتاج انتباهك", "ردود واجتماعات جاهزة", "موافقتك قبل أي إرسال"] },
@@ -52,7 +55,8 @@ function Welcome() {
   const [example, setExample] = useState(false);
   const [ready, setReady] = useState(false);
   const [preview, setPreview] = useState<WelcomePreview | null>(null);
-  const [findingTab, setFindingTab] = useState<"business" | "reach" | "site">("business");
+  const [findingTab, setFindingTab] = useState<FindingTab>("offer");
+  const [scanStage, setScanStage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [recommendation, setRecommendation] = useState<WelcomeRecommendation | null>(null);
@@ -94,7 +98,7 @@ function Welcome() {
     const input = {
       industry: industry.trim(),
       purpose: (purpose === "job" || purpose === "personal" ? purpose : "business") as "business" | "job" | "personal",
-      ...(showPreview ? { site: { name: preview.name, summary: preview.summary, products: preview.products.slice(0, 3), actions: preview.actions.slice(0, 2), platform: preview.platform } } : {}),
+      ...(showPreview ? { site: { name: preview.name.slice(0, 90), summary: (preview.profile?.oneLiner || preview.summary).slice(0, 180), products: (preview.profile?.offerings.length ? preview.profile.offerings : preview.products).slice(0, 3).map((v) => v.slice(0, 80)), actions: preview.actions.slice(0, 2), platform: preview.platform } } : {}),
     };
     const cacheKey = JSON.stringify(input);
     const cached = recommendationCache.current.get(cacheKey);
@@ -111,14 +115,15 @@ function Welcome() {
 
   async function scan() {
     if (!website.trim() || loading) return;
-    setError(""); setLoading(true); setPreview(null); setFindingTab("business");
+    setError(""); setLoading(true); setPreview(null); setFindingTab("offer"); setScanStage(0);
+    const timer = window.setInterval(() => setScanStage((s) => Math.min(s + 1, scanStages.length - 1)), 2800);
     try {
       const result = await inspect({ data: { url: website.trim() } });
       setPreview(result);
       setWebsite(result.url);
-      if (result.industry && !industry) setIndustry(result.industry);
+      if (result.industry && welcomeIndustries.includes(result.industry) && result.industry !== "أخرى") { setIndustry(result.industry); setOtherSelected(false); }
     } catch (e) { setError(e instanceof Error ? e.message : "تعذّر فحص الموقع الآن. يمكنك المتابعة دون فحص."); }
-    finally { setLoading(false); }
+    finally { window.clearInterval(timer); setLoading(false); }
   }
 
   return <div className="welcome-stage" dir="rtl">
@@ -139,11 +144,11 @@ function Welcome() {
         {step === 1 && <section className="welcome-centered welcome-website">
           <span className="welcome-eyebrow"><Globe2 className="size-4" /> اعرف نشاطك</span>
           <h1 className="welcome-title">موقعك يحكي لنا الكثير.</h1>
-          <p className="welcome-lead">أدخل الرابط لنقرأ ما هو منشور للعامة: نشاطك، خدماتك، منصتك، وطرق التواصل.</p>
+          <p className="welcome-lead">أدخل الرابط وسنقرأ موقعك كما يقرؤه خبير: ماذا تقدم، لمن، هويتك، وما الذي سيبدأ به فريقك.</p>
           <form className="welcome-url-form" onSubmit={(e) => { e.preventDefault(); void scan(); }}><label className="sr-only" htmlFor="welcome-url">رابط موقعك</label><input id="welcome-url" className="welcome-input" dir="ltr" type="text" inputMode="url" value={website} onChange={(e) => { setWebsite(e.target.value); setError(""); setPreview(null); }} placeholder="yourbusiness.com" autoComplete="url" /><Button type="submit" disabled={!website.trim() || loading} className="welcome-scan-btn">{loading ? <Loader2 className="animate-spin" /> : <Search />}<span>{loading ? "نفحص…" : "اكتشف"}</span></Button></form>
-          {loading && <p className="welcome-status" role="status">نقرأ الصفحات العامة لموقعك…</p>}
+          {loading && <div className="welcome-scan-progress" role="status" aria-live="polite">{scanStages.map((label, i) => <span key={label} className={cn(i < scanStage && "is-done", i === scanStage && "is-active")}>{i < scanStage ? <Check className="size-3.5" /> : i === scanStage ? <Loader2 className="size-3.5 animate-spin" /> : <span className="welcome-scan-dot" />}{label}</span>)}</div>}
           {error && <p className="welcome-error" role="alert">{error}</p>}
-           {showPreview && <div className="welcome-findings" aria-label="نتائج فحص الموقع"><div className="welcome-findings-head"><span className="welcome-findings-icon"><Globe2 className="size-5" /></span><div className="min-w-0"><strong className="truncate">{preview.name}</strong><span dir="ltr" className="truncate">{new URL(preview.url).hostname}</span></div><Check className="ms-auto size-5 shrink-0 text-jade" /></div><p className="welcome-findings-summary">{preview.summary || "لم ينشر الموقع وصفًا واضحًا؛ سنكمل فهم نشاطك معك بعد التسجيل."}</p><div className="welcome-findings-tabs" role="tablist" aria-label="تفاصيل القراءة">{([["business", "النشاط"], ["reach", "الوصول"], ["site", "الموقع"]] as const).map(([id, label]) => <Button key={id} type="button" variant="ghost" role="tab" aria-selected={findingTab === id} onClick={() => setFindingTab(id)} className={cn("welcome-findings-tab", findingTab === id && "is-active")}>{label}</Button>)}</div><div className="welcome-facts" role="tabpanel" aria-label={findingTab === "business" ? "النشاط" : findingTab === "reach" ? "الوصول" : "الموقع"}>{(findingTab === "business" ? [preview.industry && `المجال · ${preview.industry}`, ...preview.products.map((v) => `منتج أو خدمة · ${v}`), ...preview.offers.map((v) => `سعر منشور · ${v}`), ...preview.headings.slice(0, 5).map((v) => `عنوان · ${v}`)] : findingTab === "reach" ? [...preview.actions.map((v) => `دعوة · ${v}`), ...preview.socials.map((v) => `حساب · ${v}`), ...preview.contacts.map((v) => `تواصل · ${v}`), ...preview.locations.map((v) => `مكان · ${v}`)] : [preview.platform && `المنصة · ${preview.platform}`, preview.language && `اللغة · ${preview.language}`, ...preview.signals.map((v) => `أداة ظاهرة · ${v}`), ...preview.policies.map((v) => `صفحة · ${v}`), ...preview.pagesRead.map((v) => `قرأنا · ${new URL(v).pathname || "/"}`)]).filter((fact): fact is string => typeof fact === "string" && Boolean(fact)).map((fact, index) => <span key={`${findingTab}-${index}`} title={fact}>{fact}</span>)}{(findingTab === "business" ? preview.products.length + preview.offers.length + preview.headings.length + Number(Boolean(preview.industry)) : findingTab === "reach" ? preview.actions.length + preview.socials.length + preview.contacts.length + preview.locations.length : preview.pagesRead.length + preview.signals.length + preview.policies.length + Number(Boolean(preview.platform)) + Number(Boolean(preview.language))) === 0 && <span>لا توجد إشارات منشورة في هذه الفئة</span>}</div><p className="welcome-evidence-note">إشارات من {preview.pagesRead.length} {preview.pagesRead.length === 1 ? "صفحة عامة" : "صفحات عامة"} · ليست بيانات حسابات خاصة</p></div>}
+          {showPreview && <SiteCard preview={preview} tab={findingTab} onTab={setFindingTab} />}
           <p className="welcome-disclaimer">هذه قراءة أولية لما يظهر علنًا، وقد تغيب معلومات عن صفحات محمية أو غير متاحة. الفحص الأعمق بعد التسجيل.</p>
           <Button type="button" variant="ghost" className="welcome-skip" onClick={() => { setWebsite(""); setPreview(null); next(); }}>ليس لدي موقع الآن <ChevronLeft /></Button>
         </section>}
@@ -154,5 +159,31 @@ function Welcome() {
       </div>
        <footer className="welcome-footer"><Button type="button" variant="ghost" disabled={step === 0} onClick={back} className="welcome-back"><ArrowRight /> السابق</Button><span className="welcome-footer-dots" aria-hidden="true">{Array.from({ length: 11 }, (_, i) => <span key={i} className={i === step ? "is-active" : ""} />)}</span>{step < lastStep ? <Button type="button" disabled={!canContinue || loading || (step === 9 && recommendationState === "loading")} onClick={next} className="welcome-next">متابعة <ArrowLeft /></Button> : <span className="welcome-footer-spacer" />}</footer>
     </main>
+  </div>;
+}
+
+const tabs: [FindingTab, string][] = [["offer", "ماذا تقدم"], ["brand", "هويتك"], ["team", "فريقك"], ["reach", "الوصول"]];
+
+function SiteCard({ preview, tab, onTab }: { preview: WelcomePreview; tab: FindingTab; onTab: (t: FindingTab) => void }) {
+  const [logoOk, setLogoOk] = useState(true);
+  const p = preview.profile;
+  const host = new URL(preview.url).hostname.replace(/^www\./, "");
+  const offerings = p?.offerings.length ? p.offerings : [...preview.products, ...preview.headings].slice(0, 6);
+  const reach = [...preview.socials.map((v) => v.split("/")[0] + " · " + (v.split("/").pop() || "")), ...preview.contacts, ...preview.locations, ...preview.actions.map((v) => `«${v}»`)].slice(0, 9);
+  return <div className="welcome-dna" aria-label="ما فهمناه عن نشاطك">
+    <div className="welcome-dna-head">
+      <span className="welcome-dna-logo">{preview.logo && logoOk ? <img src={preview.logo} alt="" referrerPolicy="no-referrer" onError={() => setLogoOk(false)} /> : <Globe2 className="size-5" />}</span>
+      <div className="min-w-0 flex-1"><strong className="block truncate">{preview.name}</strong><span dir="ltr" className="block truncate">{host}</span></div>
+      {preview.colors.length > 0 && <span className="welcome-dna-swatches" aria-hidden="true">{preview.colors.slice(0, 3).map((c) => <i key={c} style={{ background: c }} />)}</span>}
+    </div>
+    <p className="welcome-dna-line">{p?.oneLiner || preview.summary || "قرأنا موقعك؛ سنكمل فهم نشاطك معك بعد التسجيل."}</p>
+    <div className="welcome-findings-tabs" role="tablist" aria-label="تفاصيل القراءة">{tabs.map(([id, label]) => <Button key={id} type="button" variant="ghost" role="tab" aria-selected={tab === id} onClick={() => onTab(id)} className={cn("welcome-findings-tab", tab === id && "is-active")}>{label}</Button>)}</div>
+    <div className="welcome-dna-panel" role="tabpanel">
+      {tab === "offer" && <>{offerings.length > 0 ? <div className="welcome-dna-chips">{offerings.map((v) => <span key={v}>{v}</span>)}</div> : <p className="welcome-dna-muted">لم تظهر خدمات واضحة في الصفحات العامة.</p>}{p?.audience && <p className="welcome-dna-row"><b>جمهورك</b>{p.audience}</p>}</>}
+      {tab === "brand" && <>{p?.tone && <p className="welcome-dna-row"><b>نبرتك</b>{p.tone}</p>}{p?.valueProps[0] && <p className="welcome-dna-row"><b>ما يميزك</b>{p.valueProps.slice(0, 2).join(" · ")}</p>}<p className="welcome-dna-row"><b>الموقع</b>{[preview.platform, preview.language, p?.market].filter(Boolean).join(" · ") || "—"}</p>{preview.colors.length > 0 && <p className="welcome-dna-row"><b>ألوانك</b><span className="welcome-dna-swatches is-inline">{preview.colors.map((c) => <i key={c} style={{ background: c }} title={c} />)}</span></p>}</>}
+      {tab === "team" && (p?.opportunities.length ? <ul className="welcome-dna-team">{p.opportunities.map((o) => <li key={o.employee}><b>{o.employee}</b><span>{o.text}</span></li>)}</ul> : <p className="welcome-dna-muted">سيضع فريقك خطته الأولى بعد التسجيل بناءً على موقعك.</p>)}
+      {tab === "reach" && (reach.length ? <div className="welcome-dna-chips">{reach.map((v) => <span key={v} dir="auto">{v}</span>)}</div> : <p className="welcome-dna-muted">لم تظهر حسابات أو وسائل تواصل في الصفحات العامة.</p>)}
+    </div>
+    <p className="welcome-evidence-note">من {preview.via === "search" ? "نتائج البحث العامة عن موقعك" : `${preview.pagesRead.length} ${preview.pagesRead.length === 1 ? "صفحة عامة" : "صفحات عامة"}`}{p ? " · فهمٌ آلي يمكنك تعديله لاحقًا" : ""}</p>
   </div>;
 }
