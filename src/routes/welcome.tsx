@@ -12,20 +12,13 @@ import type { WelcomePreview } from "@/lib/welcome-preview.server";
 import { getWelcomeRecommendation } from "@/lib/welcome-recommendation.functions";
 import type { WelcomeRecommendation } from "@/lib/welcome-recommendation.server";
 import { welcomeIndustries } from "@/lib/welcome-industries";
+import { purposeCopy, purposeMembers, type WelcomePurpose } from "@/lib/welcome-purpose";
 
 const draftKey = "sahl-welcome-draft";
 export type WelcomeDraft = { purpose: string; website: string; industry: string; step?: number };
 const industries = welcomeIndustries;
-const scanStages = ["نفتح موقعك", "نقرأ الصفحات المهمة", "نفهم نشاطك وجمهورك", "نجهّز خطة فريقك"];
+const scanStages = ["جاري الفحص", "قريبًا تظهر النتيجة"];
 type FindingTab = "offer" | "brand" | "team" | "reach";
-const descriptions: Record<string, { headline: string; tasks: string[] }> = {
-  sonny: { headline: "محتوى ينطلق من فكرتك، ولا يُنشر إلا بموافقتك.", tasks: ["خطة محتوى تناسب نشاطك", "منشورات بلهجة جمهورك", "مواد جاهزة لمراجعتك"] },
-  eva: { headline: "أمَل ترتب يومك، وتترك القرار لك.", tasks: ["ما يحتاج انتباهك", "ردود واجتماعات جاهزة", "موافقتك قبل أي إرسال"] },
-  sam: { headline: "سالم يحوّل فرص البيع إلى خطوات واضحة.", tasks: ["العملاء المناسبون", "رسائل تواصل شخصية", "مراجعتك قبل الإرسال"] },
-  nour: { headline: "نور تكتب ما يبحث عنه عملاؤك فعلًا.", tasks: ["أسئلة جمهورك", "موضوعات ومقالات عربية", "مسودات للمراجعة"] },
-  dana: { headline: "دانة تحوّل الفكرة إلى تصميم جاهز.", tasks: ["اتجاه بصري مميز", "مقاسات منصات مختلفة", "اللمسة الأخيرة لك"] },
-  adam: { headline: "آدم يجعل الأرقام قرارًا تفهمه.", tasks: ["مؤشرات الأداء المتاحة", "ما تغيّر وما يستحق الانتباه", "خطوتك التالية"] },
-};
 const lastStep = 10;
 
 export const Route = createFileRoute("/welcome")({
@@ -48,6 +41,8 @@ function Welcome() {
   const recommend = useServerFn(getWelcomeRecommendation);
   const [step, setStep] = useState(0);
   const [purpose, setPurpose] = useState("");
+  const chosenPurpose: WelcomePurpose = purpose === "job" || purpose === "personal" ? purpose : "business";
+  const copy = purposeCopy[chosenPurpose];
   const [website, setWebsite] = useState("");
   const [industry, setIndustry] = useState("");
   const [otherSelected, setOtherSelected] = useState(false);
@@ -84,7 +79,7 @@ function Welcome() {
   const next = () => setStep((current) => Math.min(current + 1, lastStep));
   const back = () => setStep((current) => Math.max(current - 1, 0));
   const member = step >= 2 && step <= 7 ? team[step - 2] : undefined;
-  const description = member ? descriptions[member.id] : undefined;
+  const description = member ? purposeMembers[chosenPurpose][member.id] : undefined;
   const filtered = industries.filter((item) => item.includes(query.trim()) || item === "أخرى");
   const customIndustry = otherSelected;
   const industryValid = industry !== "أخرى" && z.string().trim().min(2).max(60).regex(/^[\p{L}\p{N}\s\-،&/().]+$/u).safeParse(industry).success;
@@ -97,7 +92,7 @@ function Welcome() {
     setRecommendationState("loading");
     const input = {
       industry: industry.trim(),
-      purpose: (purpose === "job" || purpose === "personal" ? purpose : "business") as "business" | "job" | "personal",
+      purpose: chosenPurpose,
       ...(showPreview ? { site: { name: preview.name.slice(0, 90), summary: (preview.profile?.oneLiner || preview.summary).slice(0, 180), products: (preview.profile?.offerings.length ? preview.profile.offerings : preview.products).slice(0, 3).map((v) => v.slice(0, 80)), actions: preview.actions.slice(0, 2), platform: preview.platform } } : {}),
     };
     const cacheKey = JSON.stringify(input);
@@ -111,7 +106,7 @@ function Welcome() {
       if (!cancelled) { setRecommendation(fallbackRecommendation(input)); setRecommendationState("fallback"); }
     });
     return () => { cancelled = true; };
-  }, [step, industry, purpose, preview, website, ready]);
+  }, [step, industry, chosenPurpose, preview, website, ready]);
 
   async function scan() {
     if (!website.trim() || loading) return;
@@ -139,23 +134,23 @@ function Welcome() {
           <span className="welcome-eyebrow"><Sparkles className="size-4" /> البداية</span>
           <h1 className="welcome-title">فريقك يبدأ من قصتك.</h1>
           <p className="welcome-lead">كيف تريد أن يساعدك سهل؟</p>
-          <div className="welcome-choices">{[["business", "لإدارة مشروعي", "تسويق ومبيعات وتنظيم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف الإمكانيات", "تعرّف على الفريق ثم قرر"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => setPurpose(value ?? "")} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-sm sm:text-base">{label}</strong><span className="block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}</div>
+           <div className="welcome-choices">{[["business", "لإدارة مشروعي", "تسويق ومبيعات وتنظيم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف الإمكانيات", "تعرّف على الفريق ثم قرر"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => { if (purpose !== value) { setWebsite(""); setPreview(null); setIndustry(""); setOtherSelected(false); setRecommendation(null); } setPurpose(value ?? ""); }} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-sm sm:text-base">{label}</strong><span className="block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}</div>
         </section>}
         {step === 1 && <section className="welcome-centered welcome-website">
-          <span className="welcome-eyebrow"><Globe2 className="size-4" /> اعرف نشاطك</span>
-          <h1 className="welcome-title">موقعك يحكي لنا الكثير.</h1>
-          <p className="welcome-lead">أدخل الرابط وسنقرأ موقعك كما يقرؤه خبير: ماذا تقدم، لمن، هويتك، وما الذي سيبدأ به فريقك.</p>
+           <span className="welcome-eyebrow"><Globe2 className="size-4" /> {chosenPurpose === "personal" ? "فكرتك" : "بدايتك"}</span>
+           <h1 className="welcome-title">{copy.website}</h1>
+           <p className="welcome-lead">{copy.websiteLead}</p>
           <form className="welcome-url-form" onSubmit={(e) => { e.preventDefault(); void scan(); }}><label className="sr-only" htmlFor="welcome-url">رابط موقعك</label><input id="welcome-url" className="welcome-input" dir="ltr" type="text" inputMode="url" value={website} onChange={(e) => { setWebsite(e.target.value); setError(""); setPreview(null); }} placeholder="yourbusiness.com" autoComplete="url" /><Button type="submit" disabled={!website.trim() || loading} className="welcome-scan-btn">{loading ? <Loader2 className="animate-spin" /> : <Search />}<span>{loading ? "نفحص…" : "اكتشف"}</span></Button></form>
-          {loading && <div className="welcome-scan-progress" role="status" aria-live="polite">{scanStages.map((label, i) => <span key={label} className={cn(i < scanStage && "is-done", i === scanStage && "is-active")}>{i < scanStage ? <Check className="size-3.5" /> : i === scanStage ? <Loader2 className="size-3.5 animate-spin" /> : <span className="welcome-scan-dot" />}{label}</span>)}</div>}
+           {loading && <div className="welcome-scan-progress" role="status" aria-live="polite"><Loader2 className="size-4 animate-spin" /> {scanStages[scanStage]}</div>}
           {error && <p className="welcome-error" role="alert">{error}</p>}
           {showPreview && <SiteCard preview={preview} tab={findingTab} onTab={setFindingTab} />}
           <p className="welcome-disclaimer">هذه قراءة أولية لما يظهر علنًا، وقد تغيب معلومات عن صفحات محمية أو غير متاحة. الفحص الأعمق بعد التسجيل.</p>
-          <Button type="button" variant="ghost" className="welcome-skip" onClick={() => { setWebsite(""); setPreview(null); next(); }}>ليس لدي موقع الآن <ChevronLeft /></Button>
+           <Button type="button" variant="ghost" className="welcome-skip" onClick={() => { setWebsite(""); setPreview(null); next(); }}>{copy.websiteSkip} <ChevronLeft /></Button>
         </section>}
-        {member && description && <section className="welcome-person"><div className="welcome-person-copy"><span className="welcome-eyebrow">فريقك · {step - 1} / ٦</span><p className="welcome-role">{member.role}</p><h1 className="welcome-title">{member.name}، إلى جانبك.</h1><p className="welcome-person-lead">{description.headline}</p><ul className="welcome-tasks">{description.tasks.map((task) => <li key={task}><Check className="size-4 text-jade" />{task}</li>)}</ul><Button type="button" variant="outline" className="welcome-example-toggle" onClick={() => setExample(!example)} aria-expanded={example}>{example ? "إخفاء المثال" : "شاهد مثالًا"} {example ? <X /> : <ArrowLeft />}</Button>{example && <div className="welcome-sample" role="region" aria-label={`مثال من ${member.name}`}><span className="text-xs font-bold text-primary">مثال توضيحي · {member.sample[0]?.label}</span><p>{member.sample[0]?.body}</p><small>مثال غير مخصص لنشاطك.</small></div>}</div><div className="welcome-portrait"><Portrait memberId={member.id} name={member.name} eager className="h-full w-full" /><span className="welcome-portrait-label">{member.name} <span>· {member.role}</span></span></div></section>}
-        {step === 8 && <section className="welcome-centered"><span className="welcome-eyebrow"><Search className="size-4" /> مجالك</span><h1 className="welcome-title">في أي مجال تعمل؟</h1><p className="welcome-lead">اختر مجالك لنقترح أول خطوة تناسبه.</p><label className="welcome-industry-search"><span className="sr-only">ابحث عن المجال</span><Search className="size-4" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن مجالك…" maxLength={60} /></label><div className="welcome-industries">{filtered.map((item) => <Button key={item} type="button" variant="outline" aria-pressed={item === "أخرى" ? customIndustry : !customIndustry && industry === item} onClick={() => { if (item === "أخرى") { setOtherSelected(true); setIndustry("أخرى"); } else { setOtherSelected(false); setIndustry(item); next(); } }} className={cn("welcome-industry", (item === "أخرى" ? customIndustry : !customIndustry && industry === item) && "welcome-industry-active")}>{item}{(item === "أخرى" ? customIndustry : !customIndustry && industry === item) && <Check className="size-4 shrink-0" />}</Button>)}</div>{customIndustry && <label className="welcome-custom-label" htmlFor="welcome-custom-industry">ما مجالك تحديدًا؟<input id="welcome-custom-industry" className="welcome-input" autoFocus value={industry === "أخرى" ? "" : industry} onChange={(e) => setIndustry(e.target.value.slice(0, 60) || "أخرى")} maxLength={60} placeholder="مثال: استشارات هندسية" />{industry !== "أخرى" && industry.trim() && !industryValid && <span className="welcome-error">اكتب مجالًا من حرفين إلى ٦٠ حرفًا، دون رموز خاصة.</span>}</label>}</section>}
-         {step === 9 && <section className="welcome-centered welcome-recommendation"><span className="welcome-eyebrow"><Sparkles className="size-4" /> بداية مناسبة لمجالك</span><h1 className="welcome-title">بدايتك في {industry}.</h1>{recommendationState === "loading" ? <div className="welcome-recommend-loading" role="status"><Loader2 className="size-6 animate-spin text-primary" /><p>نرتب لك أول خطوات تناسب مجالك{showPreview ? " وما وجدناه في موقعك" : ""}…</p></div> : recommendation && <><p className="welcome-lead">{recommendation.insight}</p><div className="welcome-recommend-actions">{recommendation.actions.map((item, i) => <div key={`${item.employee}-${i}`}><span className="welcome-recommend-number">{String(i + 1).padStart(2, "0")}</span><strong>{item.employee}</strong><p>{item.text}</p></div>)}</div><p className="welcome-first-move"><Sparkles className="size-4 shrink-0" />{recommendation.firstMove}</p><p className="welcome-disclaimer">{recommendationState === "fallback" ? "تعذّر إعداد توصية شخصية الآن؛ هذه بداية أولية، ويكتمل فهم نشاطك مع الفريق بعد التسجيل. " : ""}لم نطّلع على بيانات حساباتك أو نتائج منافسين. لا نشر أو إرسال دون موافقتك.</p></>}</section>}
-        {step === 10 && <section className="welcome-centered"><span className="welcome-eyebrow"><Check className="size-4" /> البداية الحقيقية</span><h1 className="welcome-title">فريقك ينتظرك.</h1><p className="welcome-lead">ستة متخصصين يعملون معك، وأنت صاحب القرار دائمًا.</p><div className="welcome-team">{team.map((person) => <div key={person.id}><Portrait memberId={person.id} name={person.name} className="size-9 rounded-full" /><span>{person.name}</span></div>)}</div><Button asChild className="welcome-signup"><Link to="/auth" search={{ mode: "signup", plan }}>أنشئ حسابك وقابل فريقك <ArrowLeft /></Link></Button><p className="welcome-trust"><ShieldCheck className="size-4" /> لن يُنشر أو يُرسل شيء دون موافقتك</p></section>}
+         {member && description && <section className="welcome-person"><div className="welcome-person-copy"><span className="welcome-eyebrow">فريقك · {step - 1} / ٦</span><p className="welcome-role">{member.role}</p><h1 className="welcome-title">{member.name}، إلى جانبك.</h1><p className="welcome-person-lead">{description.headline}</p><ul className="welcome-tasks">{description.tasks.map((task) => <li key={task}><Check className="size-4 text-jade" />{task}</li>)}</ul><Button type="button" variant="outline" className="welcome-example-toggle" onClick={() => setExample(!example)} aria-expanded={example}>{example ? "إخفاء المثال" : "شاهد مثالًا"} {example ? <X /> : <ArrowLeft />}</Button>{example && <div className="welcome-sample" role="region" aria-label={`مثال من ${member.name}`}><span className="text-xs font-bold text-primary">مثال عملي</span><p>{description.example}</p></div>}</div><div className="welcome-portrait"><Portrait memberId={member.id} name={member.name} eager className="h-full w-full" /></div></section>}
+         {step === 8 && <section className="welcome-centered"><span className="welcome-eyebrow"><Search className="size-4" /> {chosenPurpose === "personal" ? "اهتمامك" : "مجالك"}</span><h1 className="welcome-title">{copy.industry}</h1><p className="welcome-lead">{copy.industryLead}</p><label className="welcome-industry-search"><span className="sr-only">ابحث عن المجال</span><Search className="size-4" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={chosenPurpose === "personal" ? "ابحث عن اهتمامك…" : "ابحث عن مجالك…"} maxLength={60} /></label><div className="welcome-industries">{filtered.map((item) => <Button key={item} type="button" variant="outline" aria-pressed={item === "أخرى" ? customIndustry : !customIndustry && industry === item} onClick={() => { if (item === "أخرى") { setOtherSelected(true); setIndustry("أخرى"); } else { setOtherSelected(false); setIndustry(item); next(); } }} className={cn("welcome-industry", (item === "أخرى" ? customIndustry : !customIndustry && industry === item) && "welcome-industry-active")}>{item}{(item === "أخرى" ? customIndustry : !customIndustry && industry === item) && <Check className="size-4 shrink-0" />}</Button>)}</div>{customIndustry && <label className="welcome-custom-label" htmlFor="welcome-custom-industry">{chosenPurpose === "personal" ? "ما اهتمامك تحديدًا؟" : "ما مجالك تحديدًا؟"}<input id="welcome-custom-industry" className="welcome-input" autoFocus value={industry === "أخرى" ? "" : industry} onChange={(e) => setIndustry(e.target.value.slice(0, 60) || "أخرى")} maxLength={60} placeholder="مثال: استشارات هندسية" />{industry !== "أخرى" && industry.trim() && !industryValid && <span className="welcome-error">اكتب مجالًا من حرفين إلى ٦٠ حرفًا، دون رموز خاصة.</span>}</label>}</section>}
+          {step === 9 && <section className="welcome-centered welcome-recommendation"><span className="welcome-eyebrow"><Sparkles className="size-4" /> {chosenPurpose === "personal" ? "خطوة لاستكشاف فكرتك" : "بداية تناسبك"}</span><h1 className="welcome-title">{copy.recommendation} {industry}.</h1>{recommendationState === "loading" ? <div className="welcome-recommend-loading" role="status"><Loader2 className="size-6 animate-spin text-primary" /><p>نجهز لك خطوة أولى مناسبة…</p></div> : recommendation && <><p className="welcome-lead">{recommendation.insight}</p><div className="welcome-recommend-actions">{recommendation.actions.map((item, i) => <div key={`${item.employee}-${i}`}><span className="welcome-recommend-number">{String(i + 1).padStart(2, "0")}</span><strong>{item.employee}</strong><p>{item.text}</p></div>)}</div><p className="welcome-first-move"><Sparkles className="size-4 shrink-0" />{recommendation.firstMove}</p><p className="welcome-disclaimer">{recommendationState === "fallback" ? "هذه نقطة بداية مقترحة؛ يمكنك تعديلها مع الفريق بعد التسجيل. " : ""}لا نشر أو إرسال دون موافقتك.</p></>}</section>}
+         {step === 10 && <section className="welcome-centered"><span className="welcome-eyebrow"><Check className="size-4" /> البداية الحقيقية</span><h1 className="welcome-title">{copy.finish}</h1><p className="welcome-lead">{copy.finishLead}</p><div className="welcome-team">{team.map((person) => <div key={person.id}><Portrait memberId={person.id} name={person.name} className="size-9 rounded-full" /><span>{person.name}</span></div>)}</div><Button asChild className="welcome-signup"><Link to="/auth" search={{ mode: "signup", plan }}>أنشئ حسابك وقابل فريقك <ArrowLeft /></Link></Button><p className="welcome-trust"><ShieldCheck className="size-4" /> لن يُنشر أو يُرسل شيء دون موافقتك</p></section>}
       </div>
        <footer className="welcome-footer"><Button type="button" variant="ghost" disabled={step === 0} onClick={back} className="welcome-back"><ArrowRight /> السابق</Button><span className="welcome-footer-dots" aria-hidden="true">{Array.from({ length: 11 }, (_, i) => <span key={i} className={i === step ? "is-active" : ""} />)}</span>{step < lastStep ? <Button type="button" disabled={!canContinue || loading || (step === 9 && recommendationState === "loading")} onClick={next} className="welcome-next">متابعة <ArrowLeft /></Button> : <span className="welcome-footer-spacer" />}</footer>
     </main>
@@ -166,11 +161,13 @@ const tabs: [FindingTab, string][] = [["offer", "ماذا تقدم"], ["brand", 
 
 function SiteCard({ preview, tab, onTab }: { preview: WelcomePreview; tab: FindingTab; onTab: (t: FindingTab) => void }) {
   const [logoOk, setLogoOk] = useState(true);
+  const [imageOk, setImageOk] = useState(true);
   const p = preview.profile;
   const host = new URL(preview.url).hostname.replace(/^www\./, "");
   const offerings = p?.offerings.length ? p.offerings : [...preview.products, ...preview.headings].slice(0, 6);
   const reach = [...preview.socials.map((v) => v.split("/")[0] + " · " + (v.split("/").pop() || "")), ...preview.contacts, ...preview.locations, ...preview.actions.map((v) => `«${v}»`)].slice(0, 9);
   return <div className="welcome-dna" aria-label="ما فهمناه عن نشاطك">
+    {preview.image && imageOk && <div className="welcome-dna-cover"><img src={preview.image} alt={`صورة من موقع ${preview.name}`} referrerPolicy="no-referrer" onError={() => setImageOk(false)} /></div>}
     <div className="welcome-dna-head">
       <span className="welcome-dna-logo">{preview.logo && logoOk ? <img src={preview.logo} alt="" referrerPolicy="no-referrer" onError={() => setLogoOk(false)} /> : <Globe2 className="size-5" />}</span>
       <div className="min-w-0 flex-1"><strong className="block truncate">{preview.name}</strong><span dir="ltr" className="block truncate">{host}</span></div>
@@ -184,6 +181,5 @@ function SiteCard({ preview, tab, onTab }: { preview: WelcomePreview; tab: Findi
       {tab === "team" && (p?.opportunities.length ? <ul className="welcome-dna-team">{p.opportunities.map((o) => <li key={o.employee}><b>{o.employee}</b><span>{o.text}</span></li>)}</ul> : <p className="welcome-dna-muted">سيضع فريقك خطته الأولى بعد التسجيل بناءً على موقعك.</p>)}
       {tab === "reach" && (reach.length ? <div className="welcome-dna-chips">{reach.map((v) => <span key={v} dir="auto">{v}</span>)}</div> : <p className="welcome-dna-muted">لم تظهر حسابات أو وسائل تواصل في الصفحات العامة.</p>)}
     </div>
-    <p className="welcome-evidence-note">من {preview.via === "search" ? "نتائج البحث العامة عن موقعك" : `${preview.pagesRead.length} ${preview.pagesRead.length === 1 ? "صفحة عامة" : "صفحات عامة"}`}{p ? " · فهمٌ آلي يمكنك تعديله لاحقًا" : ""}</p>
   </div>;
 }
