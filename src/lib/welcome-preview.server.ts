@@ -320,7 +320,8 @@ export async function readSite(raw: string): Promise<{ preview: WelcomePreview; 
     .map((el) => ({ href: el.getAttribute("href"), size: parseInt((el.getAttribute("sizes") ?? "0").split("x")[0] ?? "0", 10) || (/apple/.test(el.getAttribute("rel") ?? "") ? 180 : 16) }))
     .sort((a, b) => b.size - a.size);
   const ldLogo = /"logo"\s*:\s*(?:\{[^}]*?"url"\s*:\s*)?"([^"]+)"/.exec(html)?.[1];
-  const logo = absHttps(ldLogo, first.url) || absHttps(iconLinks[0]?.href, first.url) || absHttps("/favicon.ico", first.url);
+  const asLogo = (v: string | null | undefined) => { const u = absHttps(v, first.url); return u && new URL(u).pathname.length > 1 ? u : ""; };
+  const logo = asLogo(ldLogo) || asLogo(iconLinks[0]?.href) || absHttps("/favicon.ico", first.url);
   const image = absHttps(meta('meta[property="og:image"]') || meta('meta[name="twitter:image"]'), first.url);
   const colorCounts = new Map<string, number>();
   const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(hexColor).filter(Boolean);
