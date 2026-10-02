@@ -40,7 +40,7 @@ function BrainPage() {
 
   return (
     <AppShell title="عقل العلامة" lead="اختياري — شغّل ما تريد أن يلتزم به فريقك، وأوقف ما لا تريده.">
-      <div className="mx-auto grid max-w-3xl gap-4 sm:gap-5">
+      <div className="mx-auto grid w-full min-w-0 max-w-3xl grid-cols-[minmax(0,1fr)] gap-4 sm:gap-5">
         {ws ? (
           <BusinessProfileCard workspaceId={ws.id} website={ws.website} profile={ws.profile as never} compact />
         ) : null}
