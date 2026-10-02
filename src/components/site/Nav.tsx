@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -227,7 +228,8 @@ export function Nav({ variant = "over" }: { variant?: "over" | "solid" }) {
           {mobileOpen ? <X /> : <Menu />}
         </Button>
       </nav>
-      {mobileOpen && (
+      {mobileOpen &&
+        createPortal(
         <div className="sahl-white-mobile">
           <div>
             {groups.map((group) => (
@@ -253,7 +255,8 @@ export function Nav({ variant = "over" }: { variant?: "over" | "solid" }) {
               ابدأ الآن
             </Link>
           </Button>
-        </div>
+        </div>,
+        document.body,
       )}
     </header>
   );
