@@ -22,4 +22,11 @@ describe("welcome recommendations", () => {
     expect(result.actions[0]?.text).toContain("عبايات");
     expect(result.actions[2]?.text).toContain("تسوق الآن");
   });
+  test("offers different sector-specific first actions when AI is unavailable", () => {
+    const restaurant = fallbackRecommendation({ industry: "المطاعم والمقاهي", purpose: "business" });
+    const clinic = fallbackRecommendation({ industry: "العيادات والرعاية الصحية", purpose: "business" });
+    expect(restaurant.actions[1]?.text).toContain("القائمة");
+    expect(clinic.actions[1]?.text).toContain("الاستشارة");
+    expect(restaurant.actions[0]?.text).not.toBe(clinic.actions[0]?.text);
+  });
 });

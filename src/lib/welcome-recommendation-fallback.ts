@@ -23,7 +23,7 @@ export function fallbackRecommendation(input: RecommendationInput): WelcomeRecom
     actions: [
       { employee: "سِراج", text: `يجهّز ${path.social} لتراجعه قبل أي نشر.` },
       { employee: "نور", text: `يكتب مسودة ${path.search}، بناءً على معلوماتك الفعلية.` },
-      { employee: "سالم", text: `يعدّ ${action ? `تقييماً لمسار «${action}» و` : ""}${path.sales}، دون إرسال رسائل.` },
+      { employee: "سالم", text: action ? `يراجع مسار «${action}» ثم يجهّز ${path.sales}، دون إرسال رسائل.` : `يجهّز ${path.sales}، دون إرسال رسائل.` },
     ],
     firstMove: `بعد التسجيل: حدّد خدمة واحدة وأخبر الفريق من عميلها وما الخطوة التي تريد أن يتخذها؛ راجع المسودة قبل النشر أو الإرسال.`,
   };
