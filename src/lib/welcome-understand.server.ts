@@ -7,17 +7,19 @@ import { readSite, type WelcomePreview, type WelcomeProfile } from "./welcome-pr
 import { welcomeIndustries } from "./welcome-industries";
 
 const EMPLOYEES = ["سِراج", "نور", "سالم", "أمَل", "دانة", "آدم"] as const;
-const text = (max: number) => z.string().trim().max(max);
+// Lenient: trim over-long model output instead of discarding a good analysis.
+const text = (max: number) => z.string().trim().transform((v) => v.slice(0, max));
+const list = <T extends z.ZodTypeAny>(item: T, max: number) => z.array(item).transform((v) => v.slice(0, max));
 
 const profileSchema = z.object({
-  oneLiner: text(200).min(10),
-  industry: text(60),
-  offerings: z.array(text(70).min(2)).max(6),
-  audience: text(160),
-  valueProps: z.array(text(110).min(3)).max(3),
-  tone: text(90),
-  market: text(60),
-  opportunities: z.array(z.object({ employee: z.enum(EMPLOYEES), text: text(170).min(12) })).max(3),
+  oneLiner: text(220).refine((v) => v.length >= 10),
+  industry: text(60).default(""),
+  offerings: list(text(70), 6).default([]),
+  audience: text(170).default(""),
+  valueProps: list(text(120), 3).default([]),
+  tone: text(90).default(""),
+  market: text(60).default(""),
+  opportunities: list(z.object({ employee: z.enum(EMPLOYEES), text: text(180) }), 3).default([]),
 });
 
 const cache = new Map<string, { at: number; value: WelcomePreview }>();
@@ -63,7 +65,7 @@ async function understand(preview: WelcomePreview, corpus: string): Promise<Welc
     if (!parsed.success) { console.warn("[welcome-understand] invalid", parsed.error.issues.slice(0, 3).map((i) => i.path.join(".") + ":" + i.message).join(" ; ")); return null; }
     const p = parsed.data;
     const seen = new Set<string>();
-    return { ...p, opportunities: p.opportunities.filter((o) => !seen.has(o.employee) && seen.add(o.employee)) };
+    return { ...p, offerings: p.offerings.filter((o) => o.length >= 2), valueProps: p.valueProps.filter((v) => v.length >= 3), opportunities: p.opportunities.filter((o) => o.text.length >= 12 && !seen.has(o.employee) && seen.add(o.employee)) };
   } catch (error) {
     console.warn("[welcome-understand] failed", error instanceof Error ? error.message : error);
     return null;
