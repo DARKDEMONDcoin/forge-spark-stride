@@ -83,12 +83,12 @@ function Welcome() {
           {Array.from({ length: lastStep + 1 }, (_, index) => <span key={index} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-300", index <= step ? "bg-primary" : "bg-border")} />)}
         </div>
       </div>
-      <div key={step} className="welcome-appear mx-auto mt-12 max-w-3xl sm:mt-16">
+      <div key={step} className="welcome-appear mx-auto mt-6 max-w-3xl sm:mt-16">
         {step === 0 && <section className="text-center">
           <span className="welcome-eyebrow"><Sparkles className="size-4" /> البداية</span>
           <h1 className="welcome-title">كيف ستستخدم فريق سهل؟</h1>
           <p className="welcome-lead">اختر ما يناسبك، وسنعرفك على الفريق قبل أن تنشئ حسابًا.</p>
-          <div className="mx-auto mt-10 grid max-w-xl gap-3">
+          <div className="mx-auto mt-6 grid max-w-xl gap-2.5">
             {[["business", "لإدارة مشروعي", "محتوى، مبيعات، تنظيم، وتصميم في مكان واحد"], ["job", "لعملي اليومي", "فريق يساعدك في المهام ويوفر وقتك"], ["personal", "لاستكشاف ما يمكنني فعله", "ابدأ بجولة، ثم قرر ما يناسبك"]].map(([value, label, hint]) => <Button key={value} type="button" variant="outline" aria-pressed={purpose === value} onClick={() => setPurpose(value ?? "")} className={cn("welcome-choice", purpose === value && "welcome-choice-active")}><span className="min-w-0 flex-1 text-start"><strong className="block text-base">{label}</strong><span className="mt-1 block whitespace-normal text-xs font-normal text-muted-foreground">{hint}</span></span><span className="welcome-radio">{purpose === value && <Check className="size-3" />}</span></Button>)}
           </div>
         </section>}
@@ -134,7 +134,7 @@ function Welcome() {
           <div className="mx-auto mt-10 max-w-sm"><Button asChild className="h-13 w-full rounded-md text-base font-bold"><Link to="/auth" search={{ mode: "signup", plan }}>أنشئ حسابك وقابل فريقك <ArrowLeft /></Link></Button><p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4" /> لن يُنشر أو يُرسل شيء دون موافقتك</p></div>
         </section>}
       </div>
-      {step < lastStep && <div className="mx-auto mt-10 flex max-w-3xl items-center justify-between gap-4 border-t border-border pt-6"><Button type="button" variant="ghost" disabled={step === 0} onClick={back} className="font-semibold"><ArrowRight /> السابق</Button><Button type="button" disabled={!canContinue} onClick={next} className="h-11 min-w-32 font-bold">متابعة <ArrowLeft /></Button></div>}
+      {step < lastStep && <div className="mx-auto mt-8 flex max-w-3xl items-center justify-between gap-4 border-t border-border pt-6"><Button type="button" variant="ghost" disabled={step === 0} onClick={back} className="font-semibold"><ArrowRight /> السابق</Button><Button type="button" disabled={!canContinue} onClick={next} className="h-11 min-w-32 font-bold">متابعة <ArrowLeft /></Button></div>}
       {step === lastStep && <div className="mx-auto mt-8 flex max-w-3xl justify-start"><Button type="button" variant="ghost" onClick={back}><ArrowRight /> السابق</Button></div>}
       {step < lastStep && <p className="mt-8 text-center text-xs text-muted-foreground">جولة مجانية · لا تحتاج إلى حساب للمتابعة</p>}
     </main>
