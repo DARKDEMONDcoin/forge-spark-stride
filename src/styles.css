@@ -47195,3 +47195,5 @@ html {
 /* Keep the privacy choice above the wizard rather than over its navigation. */
 body:has(.welcome-stage) .sahl-cookie-consent { inset-block-end: auto; inset-block-start: max(3.6rem, env(safe-area-inset-top)); }
 @media (max-width: 767px) { body:has(.welcome-stage) .sahl-cookie-consent { inset-block-start: max(3.3rem, env(safe-area-inset-top)); } }
+
+@media (max-height: 700px) { body:has(.welcome-stage) .sahl-cookie-consent { inset-block-start: auto; inset-block-end: 3.6rem; } }

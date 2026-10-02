@@ -13,7 +13,7 @@ export const getWelcomePreview = createServerFn({ method: "POST" })
     if (!publicWebsiteUrl(data.url)) throw new Error("أدخل رابط موقع عام صالح.");
     const { isRateLimited, requestIdentifier } = await import("./rate-limit.server");
     const id = requestIdentifier(getRequest());
-    const key = `${id}:${new URL(publicWebsiteUrl(data.url)?.toString() ?? data.url).hostname}`;
+    const key = id;
     const now = Date.now();
     const entry = attempts.get(key);
     if (attempts.size > 5000) for (const [k, v] of attempts) if (v.expires < now) attempts.delete(k);
