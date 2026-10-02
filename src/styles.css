@@ -45237,6 +45237,15 @@ html {
 }
 
 /* ===== ضبط نهائي للهاتف: قائمة كاملة بلا تمرير وجدول مقارنة متماسك ===== */
+/* القائمة تُعرض عبر portal خارج الهيدر، لذا تُعرَّف ألوانها عليها مباشرة */
+.sahl-white-mobile {
+  --home-bg: oklch(1 0 0);
+  --home-ink: oklch(0.20382 0.00871 59.14);
+  --home-copy: oklch(0.43 0.014 58);
+  --home-muted: oklch(0.968 0.006 66);
+  --home-line: oklch(0.905 0.008 66);
+  --home-terracotta: oklch(0.523 0.134 34.5);
+}
 @media (max-width: 1024px) {
   .sahl-white-mobile {
     inset: 76px 0 0;
