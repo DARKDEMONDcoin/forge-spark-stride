@@ -881,7 +881,7 @@ function ChatView({
   const dragRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
 
   const positionBarPanel = (panel: "apps" | "brand" | "chats" | "work" | "more") => {
-    const button = barPanelButtonRefs.current[panel];
+    const button = barPanelButtonRefs.current[panel] ?? barPanelButtonRefs.current.more;
     if (!button) return;
     const rect = button.getBoundingClientRect();
     setBarPanelAnchor({ x: rect.left + rect.width / 2, top: rect.bottom + 8 });
