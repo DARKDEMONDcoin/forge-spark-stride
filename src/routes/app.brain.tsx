@@ -1,27 +1,29 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, FileText, Link2, StickyNote, Images, Search, Trash2, Loader2, Pencil, X } from "lucide-react";
+import { ScrollText, Trash2, Pencil, X, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { BrandVoiceExtractor } from "@/components/app/BrandVoiceExtractor";
 import { KnowledgeLibrary } from "@/components/app/KnowledgeLibrary";
 import { BusinessProfileCard } from "@/components/app/BusinessProfileCard";
-import { getMember } from "@/data/team";
-import { brainKindLabel } from "@/data/app";
-import { useBrainItems, useDeleteBrainItem, useSaveBrandKnowledge, useUpdateBrainItem, useWorkspace } from "@/lib/data";
+import { Switch } from "@/components/ui/switch";
+import {
+  useBrainItems,
+  useDeleteBrainItem,
+  useSaveBrandKnowledge,
+  useToggleBrainItem,
+  useUpdateBrainItem,
+  useWorkspace,
+} from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { Portrait } from "@/components/site/Portrait";
 import { BrandLoader } from "@/components/site/BrandLoader";
 
 export const Route = createFileRoute("/app/brain")({
   head: () => ({
     meta: [
       { title: "عقل العلامة | سهل" },
-      {
-        name: "description",
-        content: "كل ما يعرفه فريقك عن علامتك: مستندات، روابط، قواعد نبرة، وصور.",
-      },
+      { name: "description", content: "صوت علامتك وقواعدها ومستنداتها — يستخدمها فريقك عندما تشغّلها." },
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "عقل العلامة | سهل" },
       { property: "og:description", content: "مرجع موحد لمعرفة العلامة وصوتها يستخدمه فريق سهل كله." },
@@ -32,247 +34,137 @@ export const Route = createFileRoute("/app/brain")({
   component: BrainPage,
 });
 
-const kindIcon: Record<string, typeof FileText> = {
-  doc: FileText,
-  link: Link2,
-  note: StickyNote,
-  image: Images,
-};
-
 function BrainPage() {
-  const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<string>("all");
-  const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const { data: workspace } = useWorkspace();
-  const { data: items, isLoading } = useBrainItems(workspace?.id);
-  const add = useSaveBrandKnowledge(workspace?.id);
-  const update = useUpdateBrainItem(workspace?.id);
-  const del = useDeleteBrainItem(workspace?.id);
-
-  const normalizedQuery = query.trim().toLocaleLowerCase("ar");
-  const list = (items ?? []).filter((i) => {
-    const searchable = [i.title, i.body, i.kind, i.meta].filter(Boolean).join(" ").toLocaleLowerCase("ar");
-    return (kind === "all" || i.kind === kind) && (!normalizedQuery || searchable.includes(normalizedQuery));
-  });
-  const filled = new Set((items ?? []).map((i) => i.kind)).size;
+  const ws = workspace as (typeof workspace & { website?: string | null; profile?: unknown }) | undefined;
 
   return (
-    <AppShell
-      title="عقل العلامة"
-      lead="كلما أطعمته أكثر، صار فريقك أدق — النبرة والأسعار والقواعد الممنوعة."
-      actions={
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground px-3 py-2 text-xs font-bold text-background sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
-        >
-          <Plus className="size-4" /> <span className="hidden sm:inline">أضف معرفة</span>
-        </button>
-      }
-    >
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0">
-          {workspace ? (
-            <BusinessProfileCard
-              workspaceId={workspace.id}
-              website={(workspace as { website?: string | null }).website}
-              profile={(workspace as { profile?: Record<string, unknown> }).profile as never}
-              compact
-              className="mb-4 sm:mb-6"
-            />
-          ) : null}
-          <BrandVoiceExtractor workspaceId={workspace?.id} />
-          <KnowledgeLibrary workspaceId={workspace?.id} />
-          <div className="mt-5 grid gap-2 sm:mt-6">
-            <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-border bg-card px-3.5 py-2.5 sm:px-4">
-              <Search className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحث في معرفة علامتك…"
-                aria-label="ابحث في معرفة علامتك"
-                className="min-h-6 min-w-0 flex-1 bg-transparent py-1 text-sm outline-none sm:text-base"
-              />
-            </div>
-            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible">
-              {(["all", "doc", "link", "note", "image"] as const).map((k) => (
-                <button
-                  key={k}
-                  onClick={() => setKind(k)}
-                  className={cn(
-                    "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors sm:px-4 sm:py-2 sm:text-sm",
-                    kind === k
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border hover:bg-secondary",
-                  )}
-                >
-                  {k === "all" ? "الكل" : brainKindLabel[k]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <form
-            className={cn(
-              "mt-5 space-y-3 rounded-3xl border border-border bg-card p-6",
-              open ? "block" : "hidden",
-            )}
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              const form = e.currentTarget;
-               try {
-                 await add.mutateAsync({
-                   kind: String(f.get("kind")) as "note" | "link",
-                   title: String(f.get("title")),
-                   value: String(f.get("body")),
-                 });
-                 toast.success("حُفظت المعرفة وأصبحت متاحة للموظفين الستة.");
-               } catch (error) {
-                 toast.error(error instanceof Error ? error.message : "تعذّر حفظ المعرفة");
-                 return;
-               }
-              form.reset();
-              setOpen(false);
-            }}
-          >
-            <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
-              <select
-                name="kind"
-                defaultValue="note"
-                className="rounded-2xl border border-border px-4 py-3 outline-none focus:border-jade"
-              >
-                <option value="note">ملاحظة</option>
-                <option value="link">رابط</option>
-              </select>
-              <input
-                name="title"
-                required
-                placeholder="العنوان — مثال: قائمة الأسعار ٢٠٢٥"
-                className="rounded-2xl border border-border px-4 py-3 outline-none focus:border-jade"
-              />
-            </div>
-            <textarea
-              name="body"
-              required
-              placeholder="اكتب المعلومة، أو ضع الرابط إذا اخترت رابطاً…"
-              className="min-h-28 w-full resize-none rounded-2xl border border-border px-4 py-3 outline-none focus:border-jade"
-            />
-            <button
-              type="submit"
-              disabled={add.isPending || !workspace}
-              className="rounded-full bg-foreground px-6 py-2.5 text-sm font-bold text-background disabled:opacity-60"
-            >
-              {add.isPending ? "جارٍ الحفظ…" : "احفظ في عقل العلامة"}
-            </button>
-          </form>
-
-          {isLoading ? (
-            <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-              <BrandLoader size="sm" />
-            </div>
-          ) : (
-            <ul className="mt-5 space-y-3">
-              {list.map((item) => {
-                const Icon = kindIcon[item.kind] ?? StickyNote;
-                const editing = editingId === item.id;
-                return (
-                  <li
-                    key={item.id}
-                    className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4"
-                  >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
-                      <Icon className="size-5" />
-                    </span>
-                    {editing ? (
-                      <form
-                        className="grid min-w-0 flex-1 gap-2"
-                        onSubmit={async (event) => {
-                          event.preventDefault();
-                          const form = new FormData(event.currentTarget);
-                          try {
-                            await update.mutateAsync({ id: item.id, title: String(form.get("title")), body: String(form.get("body")) });
-                            setEditingId(null);
-                            toast.success("تم تحديث المعرفة.");
-                          } catch (error) {
-                            toast.error(error instanceof Error ? error.message : "تعذّر التحديث");
-                          }
-                        }}
-                      >
-                        <input name="title" required defaultValue={item.title} className="rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary" />
-                        <textarea name="body" required defaultValue={item.body ?? ""} className="min-h-24 resize-y rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary" />
-                        <div className="flex gap-2">
-                          <button type="submit" disabled={update.isPending} className="rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:opacity-50">حفظ</button>
-                          <button type="button" onClick={() => setEditingId(null)} className="grid size-8 place-items-center rounded-full border border-border" aria-label="إلغاء التعديل"><X className="size-4" /></button>
-                        </div>
-                      </form>
-                    ) : (
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-bold">{item.title}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{item.meta ?? item.body}</span>
-                      </span>
-                    )}
-                    <span className="flex -space-x-2 space-x-reverse">
-                      {item.used_by.map((uid) => {
-                        const m = getMember(uid);
-                        if (!m) return null;
-                        return (
-                          <span
-                            key={uid}
-                            title={m.name}
-                            className="size-7 overflow-hidden rounded-full border-2 border-card"
-                            style={{ background: m.tintSoft }}
-                          >
-                            <Portrait memberId={m.id} name={m.name} className="size-full" />
-                          </span>
-                        );
-                      })}
-                    </span>
-                    {!editing ? <button type="button" onClick={() => setEditingId(item.id)} className="grid size-9 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" aria-label="تعديل"><Pencil className="size-4" /></button> : null}
-                    <button
-                      onClick={() => del.mutate(item.id)}
-                      className="grid size-9 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-coral"
-                      aria-label="حذف"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </li>
-                );
-              })}
-              {list.length === 0 ? (
-                <li className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                  لا توجد عناصر — أضف أول معرفة لعلامتك.
-                </li>
-              ) : null}
-            </ul>
-          )}
-        </div>
-
-        <aside className="space-y-4">
-          <section className="rounded-3xl border border-border bg-card p-6">
-            <h2 className="font-display font-black">اكتمال المعرفة</h2>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(100, ((items?.length ?? 0) / 8) * 100)}%`,
-                  backgroundImage: "var(--gradient-aurora)",
-                }}
-              />
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {items?.length ?? 0} عنصراً · {filled} أنواع مغطاة
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-border bg-secondary/50 p-6">
-            <h2 className="font-display font-black">قاعدة إلزامية</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-              كل ما يُكتب في عقل العلامة يُطبَّق على جميع الموظفين فوراً — بدون إعادة تدريب.
-            </p>
-          </section>
-        </aside>
+    <AppShell title="عقل العلامة" lead="اختياري — شغّل ما تريد أن يلتزم به فريقك، وأوقف ما لا تريده.">
+      <div className="mx-auto grid w-full min-w-0 max-w-3xl grid-cols-[minmax(0,1fr)] gap-4 sm:gap-5">
+        {ws ? (
+          <BusinessProfileCard workspaceId={ws.id} website={ws.website} profile={ws.profile as never} compact />
+        ) : null}
+        <BrandVoiceExtractor workspaceId={ws?.id} website={ws?.website} />
+        <BrandRules workspaceId={ws?.id} />
+        <KnowledgeLibrary workspaceId={ws?.id} />
       </div>
     </AppShell>
+  );
+}
+
+function BrandRules({ workspaceId }: { workspaceId?: string | undefined }) {
+  const { data: items, isLoading } = useBrainItems(workspaceId);
+  const add = useSaveBrandKnowledge(workspaceId);
+  const update = useUpdateBrainItem(workspaceId);
+  const toggle = useToggleBrainItem(workspaceId);
+  const del = useDeleteBrainItem(workspaceId);
+  const [draft, setDraft] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const rules = (items ?? []).filter((i) => i.title !== "دليل صوت العلامة" && i.kind !== "learning");
+
+  async function onAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const text = draft.trim();
+    if (text.length < 3) return;
+    const firstLine = text.split("\n")[0]!.slice(0, 120);
+    try {
+      await add.mutateAsync({ kind: "note", title: firstLine, value: text });
+      setDraft("");
+      toast.success("أُضيفت القاعدة — الفريق يلتزم بها من الرسالة التالية.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذّر الحفظ");
+    }
+  }
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
+          <ScrollText className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-display text-base font-black sm:text-lg">قواعد الفريق</h2>
+          <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+            جمل قصيرة يلتزم بها كل موظف دائمًا، مثل: «لا تذكر الأسعار علنًا» أو «خاطب العميل بصيغة أنتم».
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={onAdd} className="mt-4 flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="اكتب قاعدة جديدة…"
+          aria-label="قاعدة جديدة"
+          className="min-w-0 flex-1 rounded-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none focus:border-primary"
+        />
+        <button
+          type="submit"
+          disabled={draft.trim().length < 3 || add.isPending || !workspaceId}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-sm font-bold text-background disabled:opacity-40"
+        >
+          {add.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} أضف
+        </button>
+      </form>
+
+      {isLoading ? (
+        <div className="mt-4"><BrandLoader size="sm" /></div>
+      ) : (
+        <ul className="mt-3 divide-y divide-border">
+          {rules.length === 0 ? (
+            <li className="py-3 text-sm text-muted-foreground">لا توجد قواعد — الفريق يعمل بإعداداته الافتراضية.</li>
+          ) : null}
+          {rules.map((item) => {
+            const active = item.used_by.length > 0;
+            if (editingId === item.id) {
+              return (
+                <li key={item.id} className="py-3">
+                  <form
+                    className="grid gap-2"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      const body = String(new FormData(event.currentTarget).get("body")).trim();
+                      try {
+                        await update.mutateAsync({ id: item.id, title: body.split("\n")[0]!.slice(0, 120), body });
+                        setEditingId(null);
+                        toast.success("تم التحديث.");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "تعذّر التحديث");
+                      }
+                    }}
+                  >
+                    <textarea
+                      name="body"
+                      required
+                      defaultValue={item.body ?? item.title}
+                      className="min-h-20 resize-y rounded-2xl border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={update.isPending} className="rounded-full bg-foreground px-4 py-1.5 text-xs font-bold text-background">حفظ</button>
+                      <button type="button" onClick={() => setEditingId(null)} className="grid size-8 place-items-center rounded-full border border-border" aria-label="إلغاء"><X className="size-4" /></button>
+                    </div>
+                  </form>
+                </li>
+              );
+            }
+            return (
+              <li key={item.id} className="flex items-center gap-2 py-3">
+                <p className={cn("min-w-0 flex-1 text-sm leading-relaxed", !active && "text-muted-foreground line-through decoration-border")}>
+                  {item.title}
+                </p>
+                <Switch
+                  checked={active}
+                  onCheckedChange={(v) => toggle.mutate({ id: item.id, active: v })}
+                  aria-label={active ? "إيقاف القاعدة" : "تشغيل القاعدة"}
+                />
+                <button type="button" onClick={() => setEditingId(item.id)} className="grid size-8 shrink-0 place-items-center rounded-xl text-muted-foreground hover:bg-secondary" aria-label="تعديل"><Pencil className="size-4" /></button>
+                <button type="button" onClick={() => del.mutate(item.id)} className="grid size-8 shrink-0 place-items-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-destructive" aria-label="حذف"><Trash2 className="size-4" /></button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

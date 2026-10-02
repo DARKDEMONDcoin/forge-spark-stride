@@ -374,6 +374,22 @@ export function useUpdateBrainItem(workspaceId?: string) {
   });
 }
 
+/** Active rules reach every employee; an empty used_by pauses the rule without deleting it. */
+export function useToggleBrainItem(workspaceId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from("brain_items")
+        .update({ used_by: active ? ["sonny", "eva", "sam", "nour", "dana", "adam"] : [] })
+        .eq("id", id)
+        .eq("workspace_id", workspaceId!);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["brain", workspaceId] }),
+  });
+}
+
 export function useDeleteBrainItem(workspaceId?: string) {
   const qc = useQueryClient();
   return useMutation({
