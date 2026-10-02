@@ -19,6 +19,8 @@ import { getMember } from "@/data/team";
 import type { BusinessProfile } from "@/lib/business-profile.server";
 import { profileMyWebsite } from "@/lib/business-profile.functions";
 import { cn } from "@/lib/utils";
+import { useIntegrations } from "@/lib/data";
+import { CheckCircle2 } from "lucide-react";
 import { Portrait } from "@/components/site/Portrait";
 import { SiteFavicon } from "@/components/app/SiteBadge";
 import defaultWorkspace from "@/assets/default-workspace.jpg";
@@ -47,6 +49,8 @@ export function BusinessProfileCard({
 }: Props) {
   const qc = useQueryClient();
   const run = useServerFn(profileMyWebsite);
+  const { data: connected } = useIntegrations(workspaceId);
+  const connectedSet = new Set((connected ?? []).filter((c) => c.status === "connected").map((c) => c.provider));
   const [url, setUrl] = useState(website ?? "");
   const [result, setResult] = useState<BusinessProfile | null>(null);
 
@@ -180,20 +184,39 @@ export function BusinessProfileCard({
           {p.recommendedIntegrations?.length ? (
             <div>
               <p className="mb-2 text-xs font-bold text-muted-foreground">
-                أكثر الحسابات فائدة لنشاطك (تُربط عند الحاجة فقط)
+                أكثر الحسابات فائدة لنشاطك — مرتبة حسب ما وجدناه فعلاً في موقعك
               </p>
-              <div className="flex flex-wrap gap-2">
-                {p.recommendedIntegrations.map((i) => (
-                  <Link
-                    key={i.provider}
-                    to="/app/integrations"
-                    title={i.why}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-bold hover:bg-secondary"
-                  >
-                    <AppIcon name={i.provider} className="size-4" /> {appLabel(i.provider)}
-                    <Link2 className="size-3 text-muted-foreground" />
-                  </Link>
-                ))}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {p.recommendedIntegrations.map((i) => {
+                  const on = connectedSet.has(i.provider);
+                  return (
+                    <Link
+                      key={i.provider}
+                      to="/app/integrations"
+                      className="flex items-start gap-2.5 rounded-2xl border border-border p-3 text-start hover:bg-secondary/60"
+                    >
+                      <AppIcon name={i.provider} className="mt-0.5 size-5 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 text-sm font-bold">
+                          {appLabel(i.provider)}
+                          {on ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-jade">
+                              <CheckCircle2 className="size-3" /> مربوط
+                            </span>
+                          ) : (
+                            <Link2 className="size-3 text-muted-foreground" />
+                          )}
+                        </span>
+                        <span className="block text-xs leading-relaxed">{i.why}</span>
+                        {i.evidence ? (
+                          <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                            الدليل: {i.evidence}
+                          </span>
+                        ) : null}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           ) : null}
