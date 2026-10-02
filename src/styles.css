@@ -47105,17 +47105,19 @@ html {
 .chat-embedded-tool > header span { font-size: 0.62rem; }
 
 /* شريط الموظف العلوي: رفيع، صف واحد، زجاجي عالي الجودة */
-.app-shell.is-chat-shell .app-topbar { padding: 0.375rem 0.5rem 0; }
+.app-shell.is-chat-shell .app-topbar { position: fixed; inset-block-start: 0; inset-inline: 0; padding: 0.5rem; pointer-events: none; background: transparent; }
+@media (min-width: 768px) { .app-shell.is-chat-shell .app-topbar { inset-inline-start: 16rem; } }
 .app-shell.is-chat-shell .app-topbar-inner {
   min-height: 2.75rem !important;
   flex-wrap: nowrap !important;
   gap: 0.5rem;
   padding: 0.25rem 0.5rem !important;
   border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  border-radius: 0.875rem;
-  background: color-mix(in oklab, var(--card) 78%, transparent);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card) 68%, transparent);
+  backdrop-filter: blur(22px) saturate(1.45);
+  -webkit-backdrop-filter: blur(22px) saturate(1.45);
+  pointer-events: auto;
   box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 6%, transparent) inset,
     0 8px 24px -16px color-mix(in oklab, var(--foreground) 35%, transparent);
 }
@@ -47202,7 +47204,7 @@ html {
 }
 
 /* شريط الموظف: مجموعة واحدة متوازنة في وسط مساحة المحادثة. */
-.app-shell.is-chat-shell header.app-topbar .app-topbar-inner { width: max-content !important; max-width: 100%; margin-inline: auto; grid-template-columns: minmax(0, 1fr) !important; border-radius: 1.5rem !important; }
+.app-shell.is-chat-shell header.app-topbar .app-topbar-inner { width: max-content !important; max-width: calc(100vw - 1rem); margin-inline: auto; grid-template-columns: minmax(0, 1fr) !important; border-radius: 999px !important; }
 .app-shell.is-chat-shell .app-topbar-inner > .sr-only { display: none; }
 .app-shell.is-chat-shell .app-topbar-controls { min-width: 0 !important; width: auto !important; flex: 0 1 auto !important; overflow: hidden !important; }
 .app-shell.is-chat-shell .chat-topbar-actions { display: flex !important; width: auto !important; min-width: 0; flex: 0 1 auto !important; overflow-x: auto !important; justify-content: flex-start; scrollbar-width: none; }

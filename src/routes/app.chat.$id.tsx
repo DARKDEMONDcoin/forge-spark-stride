@@ -11,18 +11,12 @@ import {
   Share2,
   RefreshCw,
   Download,
-  Plus,
-  Trash2,
-  History,
   X,
-  Fingerprint,
   SlidersHorizontal,
   BookOpenText,
-  AudioLines,
   PlugZap,
   ImagePlus,
   TextCursorInput,
-  Search,
   CalendarDays,
   Bot,
   ListChecks,
@@ -50,16 +44,15 @@ import { InlineApproval } from "@/components/app/InlineApproval";
 import { getMember } from "@/data/team";
 import {
   useBrainItems,
-  useConversations,
-  useCreateConversation,
+  useEmployeeConversation,
   useDeleteConversation,
   useIntegrations,
   useMessages,
   useProfile,
-  useRenameConversation,
+  useMarkConversationRead,
   useTasks,
   useWorkspace,
-  useSaveBrandKnowledge,
+  useUpdateWorkspace,
 } from "@/lib/data";
 import { askEmployee, runSkill } from "@/lib/ai.functions";
 import { reviseEmployeeAction } from "@/lib/employee-actions.functions";
@@ -79,7 +72,7 @@ import { PublishToWordPress } from "@/components/app/PublishToWordPress";
 import { ActionPanel } from "@/components/app/ActionPanel";
 import { ActionCard, type PendingAction } from "@/components/app/ActionCard";
 import { UserAvatar } from "@/components/app/UserAvatar";
-import { BrandVoiceExtractor } from "@/components/app/BrandVoiceExtractor";
+import { BusinessProfileCard } from "@/components/app/BusinessProfileCard";
 import { Portrait } from "@/components/site/Portrait";
 import { streamEmployeeTurn, type BrowserEvent } from "@/lib/employee-stream";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,17 +106,6 @@ function dayLabel(iso: string) {
   if (same(d, today)) return "اليوم";
   if (same(d, yesterday)) return "أمس";
   return d.toLocaleDateString("ar", { weekday: "long", day: "numeric", month: "long" });
-}
-
-function conversationDate(iso: string) {
-  return new Intl.DateTimeFormat("ar-EG", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -745,22 +727,14 @@ function ChatView({
   const navigate = useNavigate();
   const { data: workspace } = useWorkspace();
   const { data: profile } = useProfile();
-  const { data: conversations } = useConversations(workspace?.id, id);
-  /** يبدأ من المحادثة المحفوظة مسبقاً فيظهر الموظف فوراً بلا شاشة فارغة (تجربة واتساب). */
-  const [conversationId, setConversationId] = useState<string | undefined>(() => {
-    const ws = qc.getQueryData<{ id: string } | null>(["workspace"]);
-    return qc.getQueryData<Array<{ id: string }>>(["conversations", ws?.id, id])?.[0]?.id;
-  });
-  const [startingNewConversation, setStartingNewConversation] = useState(false);
-  const createConversation = useCreateConversation(workspace?.id, id);
-  const renameConversation = useRenameConversation(workspace?.id, id);
-  const deleteConversation = useDeleteConversation(workspace?.id, id);
+  const { data: conversation } = useEmployeeConversation(workspace?.id, id);
+  const conversationId = conversation?.id;
+  const markConversationRead = useMarkConversationRead(workspace?.id);
+  const updateWorkspace = useUpdateWorkspace();
   const { data: messages } = useMessages(workspace?.id, id, conversationId);
   const { data: tasks } = useTasks(workspace?.id);
   const { data: integrations } = useIntegrations(workspace?.id);
   const { data: brainItems } = useBrainItems(workspace?.id);
-  const saveBrandKnowledge = useSaveBrandKnowledge(workspace?.id);
-  const hasVoiceGuide = (brainItems ?? []).some((b) => b.title === "دليل صوت العلامة");
   const { prompt: prefill } = Route.useSearch();
   const [draft, setDraft] = useState(prefill ?? "");
   useEffect(() => {
@@ -811,24 +785,21 @@ function ChatView({
   const [postLength, setPostLength] = useState<"auto" | "short" | "medium" | "long">("auto");
 
   useEffect(() => {
-    if (!startingNewConversation && !conversationId && conversations?.[0])
-      setConversationId(conversations[0].id);
-  }, [conversationId, conversations, startingNewConversation]);
-
-  useEffect(() => {
     const latest = [...(messages ?? [])].reverse().find((message) => message.role !== "user");
     setPendingAction(latest ? savedAction(latest.pending_action) : null);
     setDismissedActionMessages(new Set());
   }, [conversationId, messages]);
 
+  useEffect(() => {
+    if (conversationId && (messages ?? []).length) markConversationRead.mutate(conversationId);
+  }, [conversationId, messages?.length]);
+
   /** لوحات الشريط العلوي — تُفتح كلها داخل نفس الصفحة. */
-  const [barPanel, setBarPanel] = useState<"apps" | "brand" | "chats" | "work" | "more" | null>(null);
+  const [barPanel, setBarPanel] = useState<"apps" | "brand" | "work" | "more" | null>(null);
   const [barPanelAnchor, setBarPanelAnchor] = useState({ x: 0, top: 0 });
   const barPanelButtonRefs = useRef<
-    Record<"apps" | "brand" | "chats" | "work" | "more", HTMLButtonElement | null>
-  >({ apps: null, brand: null, chats: null, work: null, more: null });
-  const [brandSource, setBrandSource] = useState("");
-  const [conversationSearch, setConversationSearch] = useState("");
+    Record<"apps" | "brand" | "work" | "more", HTMLButtonElement | null>
+  >({ apps: null, brand: null, work: null, more: null });
   const [embeddedTool, setEmbeddedTool] = useState<{
     tool: WorkTool;
     mode: "inline" | "expanded";
@@ -880,14 +851,14 @@ function ChatView({
   const [toolOffset, setToolOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
 
-  const positionBarPanel = (panel: "apps" | "brand" | "chats" | "work" | "more") => {
+  const positionBarPanel = (panel: "apps" | "brand" | "work" | "more") => {
     const button = barPanelButtonRefs.current[panel] ?? barPanelButtonRefs.current.more;
     if (!button) return;
     const rect = button.getBoundingClientRect();
     setBarPanelAnchor({ x: rect.left + rect.width / 2, top: rect.bottom + 8 });
   };
 
-  const toggleBarPanel = (panel: "apps" | "brand" | "chats" | "work" | "more") => {
+  const toggleBarPanel = (panel: "apps" | "brand" | "work" | "more") => {
     if (barPanel === panel) {
       setBarPanel(null);
       return;
@@ -940,11 +911,6 @@ function ChatView({
   } satisfies React.CSSProperties;
 
   const owned = (integrations ?? []).filter((i) => i.employee_id === id);
-  const filteredConversations = (conversations ?? []).filter((conversation) =>
-    conversation.title
-      .toLocaleLowerCase("ar")
-      .includes(conversationSearch.trim().toLocaleLowerCase("ar")),
-  );
   const wpConnected = (integrations ?? []).some(
     (i) => i.provider === "wordpress" && i.status === "connected",
   );
@@ -962,12 +928,8 @@ function ChatView({
 
   const send = useMutation({
     mutationFn: async (message: string) => {
-      const activeConversationId =
-        startingNewConversation || !conversationId
-          ? (await createConversation.mutateAsync()).id
-          : conversationId;
-      if (startingNewConversation || !conversationId) setConversationId(activeConversationId);
-      setStartingNewConversation(false);
+      if (!conversationId) throw new Error("المحادثة ليست جاهزة بعد. حاول مرة أخرى.");
+      const activeConversationId = conversationId;
       const payload = {
         workspaceId: workspace!.id,
         employeeId: id,
@@ -1050,7 +1012,7 @@ function ChatView({
       setActionNote(null);
       setCommandLog([]);
       void qc.invalidateQueries({ queryKey: ["messages-last", workspace?.id] });
-      void qc.invalidateQueries({ queryKey: ["conversations", workspace?.id, id] });
+      void qc.invalidateQueries({ queryKey: ["employee-inbox", workspace?.id] });
       void qc.invalidateQueries({ queryKey: ["tasks", workspace?.id] });
     },
     onError: (e: unknown, message) => {
@@ -1070,12 +1032,8 @@ function ChatView({
 
   const skillRun = useMutation({
     mutationFn: async (p: { skill: Skill; values: Record<string, string> }) => {
-      const activeConversationId =
-        startingNewConversation || !conversationId
-          ? (await createConversation.mutateAsync()).id
-          : conversationId;
-      if (startingNewConversation || !conversationId) setConversationId(activeConversationId);
-      setStartingNewConversation(false);
+      if (!conversationId) throw new Error("المحادثة ليست جاهزة بعد. حاول مرة أخرى.");
+      const activeConversationId = conversationId;
       return runSkillFn({
         data: {
           workspaceId: workspace!.id,
@@ -2028,9 +1986,7 @@ function ChatView({
                   ? `تكاملات ${member.name}`
                   : barPanel === "brand"
                     ? "عقل وصوت العلامة"
-                    : barPanel === "chats"
-                      ? `محادثات ${member.name}`
-                      : barPanel === "work"
+                    : barPanel === "work"
                         ? `تشغيل ومتابعة ${member.name}`
                         : "المزيد"
               }
@@ -2038,8 +1994,6 @@ function ChatView({
               <div className="topbar-sheet-head">
                 {barPanel === "apps" ? (
                   <PlugZap className="size-4 text-primary" />
-                ) : barPanel === "chats" ? (
-                  <History className="size-4 text-primary" />
                 ) : barPanel === "work" ? (
                   <Bot className="size-4 text-primary" />
                 ) : barPanel === "more" ? (
@@ -2053,9 +2007,7 @@ function ChatView({
                       ? `تكاملات ${member.name}`
                       : barPanel === "brand"
                         ? "عقل وصوت العلامة"
-                      : barPanel === "chats"
-                          ? `محادثات ${member.name}`
-                          : barPanel === "work"
+                      : barPanel === "work"
                             ? `تشغيل ومتابعة ${member.name}`
                             : "المزيد"}
                   </p>
@@ -2064,9 +2016,7 @@ function ChatView({
                       ? "اربط الحسابات التي يحتاجها من هنا مباشرة"
                       : barPanel === "brand"
                         ? "المصادر التي يقرأها ونبرة كتابته"
-                        : barPanel === "chats"
-                          ? "ابحث وبدّل وأدر السجل من هنا"
-                          : barPanel === "work"
+                        : barPanel === "work"
                             ? "كل ما يستطيع تنفيذه ومتابعته"
                             : "القدرات والتكاملات وإعدادات العمل"}
                   </span>
@@ -2078,20 +2028,6 @@ function ChatView({
 
               {barPanel === "more" ? (
                 <div className="chat-more-menu">
-                  <Button type="button" variant="outline" onClick={() => toggleBarPanel("chats")}>
-                    <History className="size-4" /><span>المحادثات السابقة</span>
-                  </Button>
-                  <Button type="button" variant="outline" disabled={!workspace} onClick={() => {
-                    setStartingNewConversation(true);
-                    setConversationId(undefined);
-                    setBarPanel(null);
-                    setDraft("");
-                    setPending(null);
-                    setError(null);
-                    inputRef.current?.focus();
-                  }}>
-                    <Plus className="size-4" /><span>محادثة جديدة</span>
-                  </Button>
                   <SkillPalette
                     skills={employeeSkills}
                     quick={quickSkills}
@@ -2113,8 +2049,8 @@ function ChatView({
                   ) : null}
                   {BAR_BRAND.has(member.id) ? (
                     <button type="button" onClick={() => toggleBarPanel("brand")}>
-                      <Fingerprint className="size-4" />
-                      <span>عقل وصوت العلامة</span>
+                      <BookOpenText className="size-4" />
+                      <span>موقع النشاط</span>
                     </button>
                   ) : null}
                   {BAR_WORK.has(member.id) ? (
@@ -2151,142 +2087,21 @@ function ChatView({
                 </div>
               ) : barPanel === "brand" ? (
                 <div className="mt-3 space-y-3">
-                  <div className="rounded-2xl border border-border/70 p-3">
-                    <p className="flex items-center gap-2 text-xs font-black">
-                      <BookOpenText className="size-4 text-primary" /> عقل العلامة
-                      <span className="ms-auto text-[0.66rem] font-bold text-muted-foreground">
-                        {brainItems?.length ?? 0} مصادر
-                      </span>
-                    </p>
-                    <div className="mt-2 space-y-1">
-                      {(brainItems ?? []).slice(0, 5).map((item) => (
-                        <p key={item.id} className="truncate text-[0.72rem] text-muted-foreground">
-                          • {item.title}
-                        </p>
-                      ))}
-                      {(brainItems ?? []).length === 0 ? (
-                        <p className="text-[0.72rem] text-muted-foreground">
-                          لا مصادر بعد — الصق رابط موقعك ليقرأه {member.name}.
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        value={brandSource}
-                        onChange={(e) => setBrandSource(e.target.value)}
-                        placeholder="رابط أو ملاحظة عن علامتك…"
-                        dir="auto"
-                        className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary"
-                      />
-                      <button
-                        type="button"
-                        disabled={!workspace || !brandSource.trim() || saveBrandKnowledge.isPending}
-                        onClick={() =>
-                          saveBrandKnowledge.mutate(
-                            {
-                              kind: brandSource.trim().startsWith("http") ? "link" : "note",
-                              value: brandSource.trim(),
-                            },
-                            {
-                              onSuccess: () => setBrandSource(""),
-                              onError: (error) =>
-                                toast.error(error instanceof Error ? error.message : "تعذّر حفظ المعرفة"),
-                            },
-                          )
-                        }
-                        className="shrink-0 rounded-full bg-foreground px-3 py-2 text-[0.7rem] font-bold text-background disabled:opacity-50"
-                      >
-                        {saveBrandKnowledge.isPending ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          "أضف"
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-border/70 p-3">
-                    <p className="flex items-center gap-2 text-xs font-black">
-                      <AudioLines className="size-4 text-primary" /> صوت العلامة
-                      <span className="ms-auto text-[0.66rem] font-bold text-muted-foreground">
-                        {hasVoiceGuide ? "جاهز" : "غير مضبوط"}
-                      </span>
-                    </p>
-                    <div className="mt-2">
-                      <BrandVoiceExtractor workspaceId={workspace?.id} compact />
-                    </div>
-                  </div>
-                </div>
-              ) : barPanel === "chats" ? (
-                <div className="chat-history-sheet">
-                  <label className="chat-history-search">
-                    <Search className="size-4" />
-                    <input
-                      value={conversationSearch}
-                      onChange={(event) => setConversationSearch(event.target.value)}
-                      placeholder="ابحث في المحادثات…"
-                      aria-label="البحث في المحادثات"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    disabled={!workspace}
-                    onClick={() => {
-                      setStartingNewConversation(true);
-                      setConversationId(undefined);
-                      setBarPanel(null);
-                      setDraft("");
-                      setPending(null);
-                      setError(null);
-                      inputRef.current?.focus();
-                    }}
-                    className="chat-history-new"
-                  >
-                    <Plus className="size-4" />
-                    محادثة جديدة
-                  </button>
-                  <div className="chat-history-list">
-                    {filteredConversations.map((conversation) => (
-                      <article
-                        key={conversation.id}
-                        className={cn(
-                          "chat-history-row",
-                          conversation.id === conversationId && "is-active",
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStartingNewConversation(false);
-                            setConversationId(conversation.id);
-                            setBarPanel(null);
-                          }}
-                          onDoubleClick={() => {
-                            const title = window.prompt("اسم المحادثة", conversation.title)?.trim();
-                            if (title) renameConversation.mutate({ id: conversation.id, title });
-                          }}
-                        >
-                          <strong>{conversation.title}</strong>
-                          <time dateTime={conversation.updated_at}>
-                            <CalendarDays className="size-3.5" />
-                            {conversationDate(conversation.updated_at)}
-                          </time>
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`حذف ${conversation.title}`}
-                          onClick={() => {
-                            if (window.confirm("حذف هذه المحادثة ورسائلها؟"))
-                              deleteConversation.mutate(conversation.id);
-                          }}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </article>
-                    ))}
-                    {!filteredConversations.length ? (
-                      <p className="chat-history-empty">لا توجد محادثة تطابق البحث.</p>
-                    ) : null}
-                  </div>
+                  {workspace ? (
+                    <>
+                      <label className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 text-xs font-bold">
+                        <span>استخدام موقع النشاط في ردود كل الموظفين</span>
+                        <input
+                          type="checkbox"
+                          checked={workspace.use_website_context}
+                          disabled={updateWorkspace.isPending}
+                          onChange={(event) => updateWorkspace.mutate({ id: workspace.id, patch: { use_website_context: event.target.checked } })}
+                          className="size-4 accent-primary"
+                        />
+                      </label>
+                      <BusinessProfileCard workspaceId={workspace.id} website={workspace.website} profile={workspace.profile as never} compact className="rounded-lg p-3 sm:p-3" />
+                    </>
+                  ) : null}
                 </div>
               ) : (
                 <div className="chat-work-sheet">
