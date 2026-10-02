@@ -179,7 +179,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
 }
 
 const absHttps = (value: string | null | undefined, base: string) => {
-  try { const u = new URL((value ?? "").trim(), base); return u.protocol === "https:" ? u.toString().slice(0, 400) : ""; } catch { return ""; }
+  try { if (!value?.trim()) return ""; const u = new URL(value.trim(), base); return u.protocol === "https:" ? u.toString().slice(0, 400) : ""; } catch { return ""; }
 };
 const hexColor = (value: string) => {
   let h = value.trim().toLowerCase().replace(/^#/, "");
