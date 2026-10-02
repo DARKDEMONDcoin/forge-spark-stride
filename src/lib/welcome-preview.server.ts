@@ -19,6 +19,25 @@ export type WelcomePreview = {
   policies: string[];
   signals: string[];
   tone: string;
+  /** Brand assets for the visitor's DNA card (absolute https URLs / hex colors). */
+  logo: string;
+  image: string;
+  colors: string[];
+  /** How the homepage was obtained: plain fetch, open-source renderer, cloud Chrome, or search index. */
+  via: "direct" | "rendered" | "browser" | "search";
+  /** AI understanding grounded only in the pages above; null when unavailable. */
+  profile: WelcomeProfile | null;
+};
+
+export type WelcomeProfile = {
+  oneLiner: string;
+  industry: string;
+  offerings: string[];
+  audience: string;
+  valueProps: string[];
+  tone: string;
+  market: string;
+  opportunities: { employee: string; text: string }[];
 };
 
 const socialHosts = ["instagram.com", "facebook.com", "tiktok.com", "linkedin.com", "youtube.com", "x.com", "twitter.com", "snapchat.com", "pinterest.com", "wa.me", "t.me"];
@@ -101,13 +120,28 @@ async function renderedPage(url: URL) {
 
 const visibleTextLength = (html: string) => html.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
 
-async function readPage(url: URL, root: string | null) {
-  const direct = await directPage(url, root).catch(() => null);
+/** Last resort: a real cloud Chrome session (Browserbase) that runs scripts and passes most bot checks. */
+async function browserPage(url: URL) {
+  const { browsePage } = await import("./cloud-browser.server");
+  const page = await browsePage(url.toString(), { html: true });
+  if (!page?.html) throw new Error("لم نتمكن من قراءة صفحات هذا الموقع.");
+  const final = publicWebsiteUrl(page.url) ?? url;
+  return { html: page.html, url: final.toString(), via: "browser" as const };
+}
+
+async function readPage(url: URL, root: string | null, deep = false): Promise<{ html: string; url: string; via: "direct" | "rendered" | "browser" }> {
+  const direct = await directPage(url, root).then((p) => ({ ...p, via: "direct" as const })).catch(() => null);
   // Thin shell (client-rendered app) or blocked → render it.
   const blocked = (h: string) => /<title>\s*(Just a moment|Attention Required|Access denied|Please wait|Verifying)/i.test(h) || /cf-browser-verification|challenge-platform|captcha/i.test(h.slice(0, 20000)) && visibleTextLength(h) < 1500;
   if (direct && !blocked(direct.html) && visibleTextLength(direct.html) >= 400) return direct;
-  const rendered = await renderedPage(direct ? new URL(direct.url) : url).catch(() => null);
+  const target = direct ? new URL(direct.url) : url;
+  const rendered = await renderedPage(target).then((p) => ({ ...p, via: "rendered" as const })).catch(() => null);
   if (rendered && !blocked(rendered.html) && (!direct || blocked(direct.html) || visibleTextLength(rendered.html) > visibleTextLength(direct.html))) return rendered;
+  if (direct && !blocked(direct.html) && visibleTextLength(direct.html) >= 150) return direct;
+  if (deep) {
+    const browsed = await browserPage(target).catch(() => null);
+    if (browsed && !blocked(browsed.html) && visibleTextLength(browsed.html) >= 150) return browsed;
+  }
   if (direct && !blocked(direct.html)) return direct;
   throw new Error("هذا الموقع يمنع القراءة الآلية حاليًا؛ يمكنك المتابعة وسنحلله بعمق بعد التسجيل.");
 }
@@ -141,9 +175,33 @@ const unique = (values: string[], max: number) => [...new Set(values.filter(Bool
 const types = (value: unknown) => Array.isArray(value) ? value.join(" ") : String(value ?? "");
 
 export async function previewWebsite(raw: string): Promise<WelcomePreview> {
+  return (await readSite(raw)).preview;
+}
+
+const absHttps = (value: string | null | undefined, base: string) => {
+  try { const u = new URL((value ?? "").trim(), base); return u.protocol === "https:" ? u.toString().slice(0, 400) : ""; } catch { return ""; }
+};
+const hexColor = (value: string) => {
+  let h = value.trim().toLowerCase().replace(/^#/, "");
+  if (/^[0-9a-f]{3}$/.test(h)) h = h.split("").map((c) => c + c).join("");
+  if (!/^[0-9a-f]{6}$/.test(h)) return "";
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  // Skip near-white, near-black and greys: they are layout, not brand.
+  if (max - min < 28 || max < 35 || min > 225) return "";
+  return `#${h}`;
+};
+
+/** Reads the site and also returns the visible-text corpus used for AI understanding (server-only). */
+export async function readSite(raw: string): Promise<{ preview: WelcomePreview; corpus: string }> {
   const url = publicWebsiteUrl(raw);
   if (!url) throw new Error("أدخل رابط موقع عام صالح، مثل example.com");
-  const first = await readPage(url, null);
+  const first = await readPage(url, null, true).catch(async (error: unknown) => {
+    const found = await searchFallback(url).catch(() => null);
+    if (found) return found;
+    throw error;
+  });
+  if ("preview" in first) return first;
   const root = new URL(first.url).hostname.replace(/^www\./, "");
   const { document } = parseHTML(first.html);
   const meta = (selector: string) => clean(document.querySelector(selector)?.getAttribute("content"));
@@ -160,6 +218,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
   const policies: string[] = [];
   const signals: string[] = [];
   const samples: string[] = [];
+  const corpus: string[] = [];
   const links: { url: URL; score: number }[] = [];
   const visited = new Set<string>();
 
@@ -170,6 +229,9 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
     const content = doc.querySelector("main") ?? doc.querySelector("article") ?? doc.body;
     const text = clean(content?.textContent, 1500);
     if (text) samples.push(text);
+    const pageTitle = clean(doc.querySelector("title")?.textContent, 120);
+    const pageText = clean(content?.textContent, 3500);
+    if (pageText) corpus.push(`[${new URL(pageUrl).pathname || "/"}] ${pageTitle}\n${pageText}`);
     const fullText = clean(content?.textContent, 20_000);
     for (const m of fullText.matchAll(/[\w.+-]+@[\w-]+\.[\w.-]{2,}/g)) if (!/\.(png|jpe?g|webp|svg)$/i.test(m[0])) contacts.push(m[0].slice(0, 70));
     for (const m of fullText.matchAll(/(?:\+|00)\d[\d\s-]{8,15}\d/g)) contacts.push(m[0].replace(/\s+/g, " "));
@@ -244,7 +306,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
     visited.add(key);
     return true;
   }).slice(0, 4);
-  const more = await Promise.all(candidates.map(({ url: candidate }) => readPage(candidate, root).catch(() => null)));
+  const more = first.via === "browser" ? [] : await Promise.all(candidates.map(({ url: candidate }) => readPage(candidate, root).catch(() => null)));
   const pagesRead = [first.url];
   for (const page of more) if (page) { pagesRead.push(page.url); collect(page.html, page.url); }
 
@@ -254,5 +316,30 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
   if (/connect\.facebook\.net\/.*fbevents|fbq\(['"]init/i.test(html)) signals.push("Meta Pixel");
   if (/search\.google\.com\/search-console|google-site-verification/i.test(html)) signals.push("توثيق Google");
   const tone = /[\u0600-\u06ff]/.test(samples.join(" ")) ? "العربية" : /[a-z]/i.test(samples.join(" ")) ? "الإنجليزية" : "";
-  return { url: first.url, name, summary, industry, products: unique(products, 10), headings: unique(headings, 16), socials: unique(socials, 10), contacts: unique(contacts, 6), locations: unique(locations, 6), platform, language: clean(document.documentElement?.getAttribute("lang"), 20) || tone, pagesRead: unique(pagesRead, 5), offers: unique(offers, 5), actions: unique(actions, 7), policies: unique(policies, 5), signals: unique(signals, 5), tone };
+  const iconLinks = Array.from(document.querySelectorAll('link[rel~="apple-touch-icon"],link[rel~="icon"],link[rel="shortcut icon"]'))
+    .map((el) => ({ href: el.getAttribute("href"), size: parseInt((el.getAttribute("sizes") ?? "0").split("x")[0] ?? "0", 10) || (/apple/.test(el.getAttribute("rel") ?? "") ? 180 : 16) }))
+    .sort((a, b) => b.size - a.size);
+  const ldLogo = /"logo"\s*:\s*(?:\{[^}]*?"url"\s*:\s*)?"([^"]+)"/.exec(html)?.[1];
+  const logo = absHttps(ldLogo, first.url) || absHttps(iconLinks[0]?.href, first.url) || absHttps("/favicon.ico", first.url);
+  const image = absHttps(meta('meta[property="og:image"]') || meta('meta[name="twitter:image"]'), first.url);
+  const colorCounts = new Map<string, number>();
+  const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(hexColor).filter(Boolean);
+  for (const m of html.matchAll(/(?:color|background(?:-color)?|fill|--[\w-]*(?:primary|brand|accent|main)[\w-]*)\s*:\s*(#[0-9a-f]{3,6})\b/gi)) {
+    const c = hexColor(m[1]!);
+    if (c) colorCounts.set(c, (colorCounts.get(c) ?? 0) + 1);
+  }
+  const colors = unique([...declared, ...[...colorCounts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c)], 4);
+  const preview: WelcomePreview = { url: first.url, name, summary, industry, products: unique(products, 10), headings: unique(headings, 16), socials: unique(socials, 10), contacts: unique(contacts, 6), locations: unique(locations, 6), platform, language: clean(document.documentElement?.getAttribute("lang"), 20) || tone, pagesRead: unique(pagesRead, 5), offers: unique(offers, 5), actions: unique(actions, 7), policies: unique(policies, 5), signals: unique(signals, 5), tone, logo, image, colors, via: first.via, profile: null };
+  return { preview, corpus: [summary && `الوصف: ${summary}`, ...corpus].filter(Boolean).join("\n\n").slice(0, 14_000) };
+}
+
+/** When every reader is blocked, describe the site from a search index (Tavily, if configured on the platform). */
+async function searchFallback(url: URL): Promise<{ preview: WelcomePreview; corpus: string } | null> {
+  const { tavilySearch } = await import("./tavily.server");
+  const host = url.hostname.replace(/^www\./, "");
+  const rows = (await tavilySearch(`site:${host}`, { max: 6, timeoutMs: 8000 })).filter((r) => { try { return sameSite(new URL(r.url).hostname, host); } catch { return false; } });
+  if (!rows.length) return null;
+  const name = clean(rows[0]!.title.split(/[|–—-]/)[0], 90) || host;
+  const preview: WelcomePreview = { url: url.toString(), name, summary: clean(rows[0]!.snippet, 180), industry: "", products: [], headings: unique(rows.map((r) => clean(r.title, 90)), 8), socials: [], contacts: [], locations: [], platform: "", language: /[\u0600-\u06ff]/.test(rows.map((r) => r.snippet).join(" ")) ? "العربية" : "", pagesRead: unique(rows.map((r) => r.url), 5), offers: [], actions: [], policies: [], signals: [], tone: "", logo: absHttps("/favicon.ico", url.toString()), image: "", colors: [], via: "search", profile: null };
+  return { preview, corpus: rows.map((r) => `[${r.url}] ${r.title}\n${r.snippet}`).join("\n\n") };
 }
