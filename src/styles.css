@@ -18457,6 +18457,37 @@ section:has(> .integration-grid-wave) {
   font-style: normal;
   font-weight: 500;
 }
+/* Fit the whole intro inside the first screen on short desktop/laptop viewports */
+@media (min-width: 721px) and (max-height: 860px) {
+  .sahl-hero {
+    padding-block: clamp(84px, 12vh, 120px) clamp(32px, 5vh, 64px);
+  }
+  .sahl-hero h1 {
+    font-size: clamp(2.6rem, 8.6vh, 5.4rem);
+  }
+  .sahl-first-claim {
+    margin-top: clamp(12px, 2.4vh, 28px) !important;
+    font-size: clamp(1.05rem, 2.2vh, 1.4rem);
+  }
+  .sahl-lead {
+    margin-top: clamp(10px, 2vh, 20px) !important;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  .sahl-actions {
+    margin-top: clamp(16px, 3vh, 32px);
+  }
+  .sahl-actions [data-slot="button"],
+  .sahl-actions .inline-flex {
+    min-height: 46px;
+  }
+  .sahl-hero-copy > small {
+    margin-top: clamp(10px, 1.8vh, 18px);
+  }
+  .sahl-device-frame {
+    padding-bottom: 12px;
+  }
+}
 .sahl-first-claim {
   width: fit-content;
   max-width: 100%;
@@ -20212,6 +20243,7 @@ section:has(> .integration-grid-wave) {
   .sahl-hero {
     min-height: 0;
     padding: 0 0 64px;
+    display: block;
   }
   .sahl-hero-ribbon {
     inset: -95px -160px auto 28%;
