@@ -211,7 +211,7 @@ export function Nav({ variant = "over" }: { variant?: "over" | "solid" }) {
             دخول
           </Link>
           <Button asChild>
-            <Link to="/auth" search={{ mode: "signup" as const }}>
+            <Link to="/welcome">
               ابدأ الآن <span>←</span>
             </Link>
           </Button>
@@ -249,7 +249,7 @@ export function Nav({ variant = "over" }: { variant?: "over" | "solid" }) {
             </Link>
           </div>
           <Button asChild>
-            <Link to="/auth" search={{ mode: "signup" as const }}>
+            <Link to="/welcome">
               ابدأ الآن
             </Link>
           </Button>

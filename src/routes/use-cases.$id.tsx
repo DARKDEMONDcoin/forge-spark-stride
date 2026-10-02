@@ -55,8 +55,7 @@ function UseCasePage() {
       <PageHero eyebrow={u.name} title={u.title} lead={u.lead}>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            to="/auth"
-            search={{ mode: "signup" as const, plan: "growth" as const }}
+            to="/welcome" search={{ plan: "growth" as const }}
             className="rounded-full bg-white px-7 py-3.5 font-bold text-ink"
           >
             ابدأ بخطة {u.name}

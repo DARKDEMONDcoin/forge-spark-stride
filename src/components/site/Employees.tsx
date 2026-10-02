@@ -97,7 +97,7 @@ export function Employees() {
         <Reveal>
           <div className="employee-closing">
             <p>ابدأ بموظف واحد، ووسّع فريقك عندما تحتاج.</p>
-            <Link to="/auth" search={{ mode: "signup" as const }}>
+            <Link to="/welcome">
               قابل فريقك الآن
             </Link>
           </div>

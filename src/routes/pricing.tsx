@@ -166,7 +166,7 @@ function PricingPage() {
               {selected.id === "scale" ? (
                 <Link to="/contact">{selected.cta}</Link>
               ) : (
-                <Link to="/auth" search={{ mode: "signup", plan: selected.id }}>
+                <Link to="/welcome" search={{ plan: selected.id }}>
                   {selected.cta}
                 </Link>
               )}
@@ -234,7 +234,7 @@ function PricingPage() {
                     {p.id === "scale" ? (
                       <Link to="/contact">{p.cta}</Link>
                     ) : (
-                      <Link to="/auth" search={{ mode: "signup", plan: p.id }}>
+                      <Link to="/welcome" search={{ plan: p.id }}>
                         {p.cta}
                       </Link>
                     )}

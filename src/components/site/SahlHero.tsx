@@ -85,7 +85,7 @@ export function SahlHero() {
         <h1 id="live-title" className="sahl-live-title">
           شوف فريقك بيشتغل قدامك الآن
         </h1>
-        <Link to="/auth" search={{ mode: "signup" as const }} className="sahl-live-cta">
+        <Link to="/welcome" className="sahl-live-cta">
           ادخل مساحة عملك
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
