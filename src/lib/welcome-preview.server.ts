@@ -143,6 +143,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
           const entry = item as Record<string, unknown>;
           if (Array.isArray(entry["@graph"])) queue.push(...entry["@graph"].slice(0, 20));
           if (Array.isArray(entry["itemListElement"])) queue.push(...entry["itemListElement"].slice(0, 20));
+          if (entry["offers"] && typeof entry["offers"] === "object") queue.push(...(Array.isArray(entry["offers"]) ? entry["offers"].slice(0, 10) : [entry["offers"]]));
           if (/Product|Service|Offer/i.test(types(entry["@type"])) && typeof entry["name"] === "string") products.push(clean(entry["name"], 80));
           if (typeof entry["price"] === "string" || typeof entry["price"] === "number") {
             const currency = typeof entry["priceCurrency"] === "string" ? entry["priceCurrency"] : "";
