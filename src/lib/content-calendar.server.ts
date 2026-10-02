@@ -108,7 +108,7 @@ export function extractJsonList<T extends object>(raw: string, requiredKey: keyo
 async function workspaceContext(admin: Admin, workspaceId: string) {
   const [{ data: ws }, { data: brain }, { data: durable }, { data: linked }, { data: recent }, learning] = await Promise.all([
     admin.from("workspaces").select("*").eq("id", workspaceId).maybeSingle(),
-    admin.from("brain_items").select("title, body, kind").eq("workspace_id", workspaceId),
+    admin.from("brain_items").select("title, body, kind").eq("workspace_id", workspaceId).neq("used_by", "{}"),
     admin
       .from("brand_memories")
       .select("content, kind")

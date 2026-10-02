@@ -363,7 +363,7 @@ export async function runEmployeeTurn(
         .eq("workspace_id", data.workspaceId)
         .eq("employee_id", data.employeeId)
         .maybeSingle(),
-      supabase.from("brain_items").select("title, body, kind").eq("workspace_id", data.workspaceId),
+      supabase.from("brain_items").select("title, body, kind").eq("workspace_id", data.workspaceId).neq("used_by", "{}"),
       supabase
         .from("brand_memories")
         .select("content, kind")
