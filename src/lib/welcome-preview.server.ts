@@ -104,10 +104,11 @@ const visibleTextLength = (html: string) => html.replace(/<(script|style|noscrip
 async function readPage(url: URL, root: string | null) {
   const direct = await directPage(url, root).catch(() => null);
   // Thin shell (client-rendered app) or blocked → render it.
-  if (direct && visibleTextLength(direct.html) >= 400) return direct;
+  const blocked = (h: string) => /<title>\s*(Just a moment|Attention Required|Access denied|Please wait|Verifying)/i.test(h) || /cf-browser-verification|challenge-platform|captcha/i.test(h.slice(0, 20000)) && visibleTextLength(h) < 1500;
+  if (direct && !blocked(direct.html) && visibleTextLength(direct.html) >= 400) return direct;
   const rendered = await renderedPage(direct ? new URL(direct.url) : url).catch(() => null);
-  if (rendered && (!direct || visibleTextLength(rendered.html) > visibleTextLength(direct.html))) return rendered;
-  if (direct) return direct;
+  if (rendered && !blocked(rendered.html) && (!direct || blocked(direct.html) || visibleTextLength(rendered.html) > visibleTextLength(direct.html))) return rendered;
+  if (direct && !blocked(direct.html)) return direct;
   throw new Error("هذا الموقع يمنع القراءة الآلية حاليًا؛ يمكنك المتابعة وسنحلله بعمق بعد التسجيل.");
 }
 
