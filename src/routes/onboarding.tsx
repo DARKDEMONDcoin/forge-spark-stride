@@ -175,6 +175,8 @@ const goals = [
 const glassField =
   "w-full rounded-2xl border border-border bg-card/60 px-4 py-3 text-sm outline-none backdrop-blur-xl transition placeholder:text-muted-foreground/70 focus:border-primary/60 focus:bg-card/80";
 
+const welcomeDraftKey = "sahl-welcome-draft";
+
 function Onboarding() {
   const navigate = useNavigate();
   const { data: workspace } = useWorkspace();
@@ -194,6 +196,17 @@ function Onboarding() {
   const [bannedInput, setBannedInput] = useState("");
   const [picked, setPicked] = useState<string[]>(["social"]);
   const [hired, setHired] = useState<string[]>(team.map((member) => member.id));
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(welcomeDraftKey);
+      if (!saved) return;
+      const draft = JSON.parse(saved) as Record<string, unknown>;
+      if (typeof draft.website === "string") setWebsite(draft.website);
+      if (typeof draft.industry === "string") setIndustry(draft.industry);
+      sessionStorage.removeItem(welcomeDraftKey);
+    } catch { /* Optional introduction; regular onboarding remains available. */ }
+  }, []);
 
   useEffect(() => {
     if (!workspace) return;
