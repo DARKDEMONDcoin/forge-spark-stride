@@ -24,6 +24,7 @@ import {
   ArrowRight,
   Plane,
   CalendarClock,
+  History,
   CheckCircle2,
   Sparkles,
   ScrollText,
@@ -35,6 +36,7 @@ import {
   MoreHorizontal,
   Settings2,
   MessageCircle,
+  Search,
 } from "lucide-react";
 
 import { ChatShellActions, ChatShellMeta } from "@/components/app/ChatShellHost";
@@ -45,7 +47,6 @@ import { getMember } from "@/data/team";
 import {
   useBrainItems,
   useEmployeeConversation,
-  useDeleteConversation,
   useIntegrations,
   useMessages,
   useProfile,
@@ -734,7 +735,7 @@ function ChatView({
   const { data: messages } = useMessages(workspace?.id, id, conversationId);
   const { data: tasks } = useTasks(workspace?.id);
   const { data: integrations } = useIntegrations(workspace?.id);
-  const { data: brainItems } = useBrainItems(workspace?.id);
+  useBrainItems(workspace?.id);
   const { prompt: prefill } = Route.useSearch();
   const [draft, setDraft] = useState(prefill ?? "");
   useEffect(() => {
@@ -1985,7 +1986,7 @@ function ChatView({
                 barPanel === "apps"
                   ? `تكاملات ${member.name}`
                   : barPanel === "brand"
-                    ? "عقل وصوت العلامة"
+                    ? "موقع النشاط"
                     : barPanel === "work"
                         ? `تشغيل ومتابعة ${member.name}`
                         : "المزيد"
@@ -1999,14 +2000,14 @@ function ChatView({
                 ) : barPanel === "more" ? (
                   <MoreHorizontal className="size-4 text-primary" />
                 ) : (
-                  <Fingerprint className="size-4 text-primary" />
+                  <Globe className="size-4 text-primary" />
                 )}
                 <div>
                   <p>
                     {barPanel === "apps"
                       ? `تكاملات ${member.name}`
                       : barPanel === "brand"
-                        ? "عقل وصوت العلامة"
+                        ? "موقع النشاط"
                       : barPanel === "work"
                             ? `تشغيل ومتابعة ${member.name}`
                             : "المزيد"}
