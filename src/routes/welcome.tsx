@@ -74,7 +74,7 @@ function Welcome() {
   const description = member ? descriptions[member.id] : undefined;
   const filtered = industries.filter((item) => item.includes(query.trim()));
   const canContinue = step !== 0 || Boolean(purpose);
-  const showPreview = preview && (preview.url === website.trim() || preview.url.replace(/^https?:\/\//, "").replace(/\/$/, "") === website.trim().replace(/^https?:\/\//, "").replace(/\/$/, ""));
+  const showPreview = preview && preview.url === website.trim();
 
   async function scan() {
     if (!website.trim() || loading) return;

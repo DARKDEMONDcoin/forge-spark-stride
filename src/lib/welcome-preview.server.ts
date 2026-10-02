@@ -19,12 +19,12 @@ export type WelcomePreview = {
 const socialHosts = ["instagram.com", "facebook.com", "tiktok.com", "linkedin.com", "youtube.com", "x.com", "twitter.com", "snapchat.com", "pinterest.com", "wa.me"];
 const publicHost = (host: string) => {
   const h = host.toLowerCase().replace(/\.$/, "");
-  return h.includes(".") && !h.endsWith(".local") && !h.endsWith(".internal") && !h.endsWith(".localhost") && !h.endsWith(".test") && !h.endsWith(".invalid") && !h.endsWith(".example") && !/^\d+(?:\.\d+){3}$/.test(h) && !h.includes(":") && h !== "localhost";
+  return h.includes(".") && h.length <= 253 && !h.endsWith(".localhost") && !h.endsWith(".onion") && !h.endsWith(".arpa") && !h.endsWith(".lan") && !h.endsWith(".home") && !h.endsWith(".corp") && !h.endsWith(".localhost.localdomain") && !h.includes("..") && /^[a-z0-9.-]+$/.test(h) && !h.endsWith(".local") && !h.endsWith(".internal") && !h.endsWith(".localhost") && !h.endsWith(".test") && !h.endsWith(".invalid") && !h.endsWith(".example") && !/^\d+(?:\.\d+){3}$/.test(h) && !h.includes(":") && h !== "localhost";
 };
 export function publicWebsiteUrl(raw: string): URL | null {
   try {
     const u = new URL(/^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`);
-    if (!["https:", "http:"].includes(u.protocol) || u.username || u.password || u.port || !publicHost(u.hostname) || raw.length > 300) return null;
+    if (u.protocol !== "https:" || u.username || u.password || u.port || !publicHost(u.hostname) || raw.length > 300) return null;
     u.hash = "";
     return u;
   } catch { return null; }
@@ -89,7 +89,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
     try {
       const target = new URL(href, first.url);
       if (socialHosts.some((host) => target.hostname === host || target.hostname.endsWith(`.${host}`))) socials.push(target.hostname.replace(/^www\./, ""));
-      if (target.origin === url.origin && target.pathname !== url.pathname && !/\.(pdf|png|jpg|webp|zip|svg|mp4)$/i.test(target.pathname)) {
+      if (target.origin === new URL(first.url).origin && target.pathname !== url.pathname && !/\.(pdf|png|jpg|webp|zip|svg|mp4)$/i.test(target.pathname)) {
         links.push({ url: target, score: /about|عن|service|خدم|product|منتج|contact|تواصل|pricing|سعر/i.test(`${target.pathname} ${a.textContent}`) ? 2 : 0 });
       }
     } catch { /* ignore malformed links */ }
