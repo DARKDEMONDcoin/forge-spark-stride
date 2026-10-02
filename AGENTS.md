@@ -25,4 +25,4 @@
 - Public site origin comes from `src/lib/site-origin.ts`; do not hard-code other lovable.app hosts.
 - Chat research requests run `runBrowserAgent` inside the turn and stream `browser`/`step` events to the chat; employees never redirect users to colleagues (routing is silent). Why: users need real results and live visibility, not hand-off ping-pong.
 - Public signup CTAs enter the optional `/welcome` introduction before `/auth`; its temporary answers stay in sessionStorage until the existing authenticated onboarding consumes them, so signup and workspace persistence remain unchanged.
-- Public pre-signup website previews are evidence-only, bounded HTTPS reads with no model/market calls; deep business profiling remains authenticated. Why: visitors see real public-site signals without exposing costly research or private integrations to anonymous callers.
+- Public pre-signup website previews are evidence-only, bounded same-site HTTPS reads of a few relevant pages with no model/market calls; deep business profiling remains authenticated. Why: visitors see service-relevant public signals without exposing costly research or private integrations to anonymous callers.
