@@ -41503,40 +41503,6 @@ section:has(> .integration-grid-wave) {
     justify-content: center;
     margin-top: clamp(10px, 2vh, 20px);
   }
-}
-/* Very short phones: keep the whole intro on the first screen */
-@media (max-width: 720px) and (max-height: 640px) {
-  .sahl-hero-layout {
-    padding-top: 96px;
-  }
-  .sahl-live-metric {
-    font-size: 0.74rem;
-  }
-  .sahl-hero h1 {
-    margin-top: 12px;
-    font-size: 1.8rem;
-  }
-  .sahl-first-claim {
-    margin-top: 10px !important;
-    font-size: 0.95rem;
-  }
-  .sahl-lead {
-    margin-top: 8px !important;
-    font-size: 0.88rem;
-    line-height: 1.6;
-  }
-  .sahl-actions {
-    margin-top: 14px;
-    gap: 8px;
-  }
-  .sahl-actions [data-slot="button"],
-  .sahl-actions .inline-flex {
-    min-height: 44px;
-    font-size: 0.92rem;
-  }
-  .sahl-hero-copy > small {
-    margin-top: 10px;
-  }
   .sahl-trust .sahl-shell {
     width: 100%;
     display: block;
