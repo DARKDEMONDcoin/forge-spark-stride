@@ -4,6 +4,7 @@ import { ChatShellMeta } from "@/components/app/ChatShellHost";
 import { Portrait } from "@/components/site/Portrait";
 import { team } from "@/data/team";
 import { useEmployeeInbox, useWorkspace } from "@/lib/data";
+import { inboxTime } from "@/lib/inbox-time";
 
 export const Route = createFileRoute("/app/chat/")({
   head: () => ({
@@ -31,11 +32,7 @@ function ChatIndex() {
         {team.map((m) => {
           const thread = (inbox ?? []).find((item) => item.employee_id === m.id);
           const unread = thread?.unread_count ?? 0;
-          const time = thread?.last_employee_message_at
-            ? new Intl.DateTimeFormat("ar-EG", { hour: "numeric", minute: "2-digit" }).format(
-                new Date(thread.last_employee_message_at),
-              )
-            : "";
+          const time = inboxTime(thread?.last_employee_message_at);
           return (
             <Link
               key={m.id}

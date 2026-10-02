@@ -10,7 +10,8 @@ import { useRegion } from "@/hooks/use-region";
 import { supabase } from "@/integrations/supabase/client";
 import { GUEST_EMAIL } from "@/lib/guest.functions";
 
-import { useProfile, useUpdateWorkspace, useWorkspace } from "@/lib/data";
+import { useEmployeeInbox, useProfile, useUpdateWorkspace, useWorkspace } from "@/lib/data";
+import { inboxTime } from "@/lib/inbox-time";
 import { UserAvatar } from "@/components/app/UserAvatar";
 import { SiteFavicon } from "@/components/app/SiteBadge";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,14 @@ function WorkspaceCard() {
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { data: inboxWorkspace } = useWorkspace();
+  const { data: inbox } = useEmployeeInbox(inboxWorkspace?.id);
+  // ترتيب واتساب: الأحدث رسالةً أولاً، ومن لم يراسلك بعد يبقى بترتيب الفريق.
+  const inboxOrder = [...team].sort((a, b) => {
+    const ta = inbox?.find((t) => t.employee_id === a.id)?.last_employee_message_at ?? "";
+    const tb = inbox?.find((t) => t.employee_id === b.id)?.last_employee_message_at ?? "";
+    return tb.localeCompare(ta);
+  });
 
   return (
     <div className="flex h-full flex-col gap-4 p-3">
@@ -96,26 +105,47 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           <p className="text-[0.68rem] font-bold text-muted-foreground">الموظفون</p>
         </div>
         <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
-          {team.map((m) => (
-            <Link
-              key={m.id}
-              to="/app/chat/$id"
-              params={{ id: m.id }}
-              onClick={onNavigate}
-              className={cn(
-                "group flex items-center gap-3 rounded-lg border border-transparent px-2.5 py-2 text-sm transition-all hover:bg-secondary/70",
-                pathname === `/app/chat/${m.id}` && "border-primary/20 bg-primary/10 shadow-sm",
-              )}
-            >
-              <span className="relative block size-10 shrink-0 overflow-hidden rounded-lg shadow-sm">
-                <Portrait memberId={m.id} name={m.name} className="size-full" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold">{m.name}</span>
-                <span className="block truncate text-[0.7rem] text-muted-foreground">{m.role}</span>
-              </span>
-            </Link>
-          ))}
+          {inboxOrder.map((m) => {
+            const thread = inbox?.find((t) => t.employee_id === m.id);
+            const unread = thread?.unread_count ?? 0;
+            const time = inboxTime(thread?.last_employee_message_at);
+            const active = pathname === `/app/chat/${m.id}`;
+            return (
+              <Link
+                key={m.id}
+                to="/app/chat/$id"
+                params={{ id: m.id }}
+                onClick={onNavigate}
+                className={cn(
+                  "group flex items-center gap-3 rounded-lg border border-transparent px-2.5 py-2 text-sm transition-all hover:bg-secondary/70",
+                  active && "border-primary/20 bg-primary/10 shadow-sm",
+                )}
+              >
+                <span className="relative block size-11 shrink-0 overflow-hidden rounded-full shadow-sm">
+                  <Portrait memberId={m.id} name={m.name} className="size-full" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className={cn("truncate", unread && !active ? "font-black" : "font-bold")}>{m.name}</span>
+                    {time ? <time className={cn("inbox-row-time", unread > 0 && !active && "is-unread")}>{time}</time> : null}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate text-[0.72rem]",
+                        unread && !active ? "font-bold text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {thread?.last_employee_message?.replace(/[#*_`>]+/g, "").replace(/\s+/g, " ").trim() || m.role}
+                    </span>
+                    {unread > 0 && !active ? (
+                      <b className="inbox-row-badge">{unread > 99 ? "99+" : unread}</b>
+                    ) : null}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
       <Link to="/pricing" onClick={onNavigate} className="app-sidebar-pricing">
