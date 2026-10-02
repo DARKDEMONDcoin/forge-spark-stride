@@ -18,6 +18,24 @@ export function fallbackRecommendation(input: RecommendationInput): WelcomeRecom
   const subject = input.site?.products[0] || input.industry;
   const action = input.site?.actions[0];
   const path = sectorPaths.find(({ match }) => match.test(input.industry));
+  if (input.purpose === "job") return {
+    insight: `في مجال ${input.industry}، ابدأ بمهمة واحدة تتكرر في يوم عملك. حدّد المطلوب منها ومن سيستخدم نتيجتها قبل اختيار الأدوات.`,
+    actions: [
+      { employee: "أمَل", text: `ترتب مهام الأسبوع في ${input.industry} حسب الموعد والأولوية، مع قائمة مختصرة تراجعها.` },
+      { employee: "نور", text: `تجمع المعلومات اللازمة لمهمة واحدة في ${input.industry} وتعد ملخصًا بمصادره للمراجعة.` },
+      { employee: "دانة", text: `تقترح طريقة عرض بصري لنتيجة هذه المهمة حتى يسهل مشاركتها مع فريقك.` },
+    ],
+    firstMove: "بعد التسجيل: اكتب مهمة تتكرر في عملك وموعد تسليمها، واطلب خطة قصيرة لإنجازها.",
+  };
+  if (input.purpose === "personal") return {
+    insight: `اهتمامك بـ${input.industry} يكفي لتبدأ؛ لا تحتاج موقعًا أو مشروعًا. جرّب فكرة صغيرة أولًا ثم قرر إن كنت تريد التوسع فيها.`,
+    actions: [
+      { employee: "نور", text: `تجهز ثلاثة أسئلة تساعدك تفهم ${input.industry} وتختار نقطة بداية تناسب اهتمامك.` },
+      { employee: "أمَل", text: `تقسم تجربة صغيرة في ${input.industry} إلى خطوات تناسب وقتك دون التزام طويل.` },
+      { employee: "دانة", text: `تقترح تصورًا بصريًا مبدئيًا لفكرتك كي تراها قبل أن تقرر تنفيذها.` },
+    ],
+    firstMove: `بعد التسجيل: أخبر الفريق ما الذي يجذبك إلى ${input.industry} وكم وقتًا تريد تخصيصه لتجربة أولى.`,
+  };
   if (path) return {
     insight: input.site ? `من موقع ${input.site.name || "نشاطك"} وجدنا ${subject}. في ${input.industry}، البداية هي ${path.focus}؛ راجع ما وجدناه قبل بناء الخطة.` : `في ${input.industry}، البداية هي ${path.focus}. هذا اقتراح للبدء، وليس تحليل أداء أو مقارنة بالسوق.`,
     actions: [
