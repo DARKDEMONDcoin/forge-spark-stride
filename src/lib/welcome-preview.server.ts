@@ -37,41 +37,103 @@ export function publicWebsiteUrl(raw: string): URL | null {
   } catch { return null; }
 }
 
-async function readPage(url: URL, root: string) {
+const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+const MAX_BYTES = 1_500_000;
+const sameSite = (host: string, root: string) => { const h = host.replace(/^www\./, ""); return h === root || h.endsWith(`.${root}`) || root.endsWith(`.${h}`); };
+
+async function streamText(res: Response) {
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+  const decoder = new TextDecoder();
+  let bytes = 0, html = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      html += decoder.decode(value, { stream: true });
+      // Huge pages are truncated, not rejected: the head and main content come first.
+      if (bytes > MAX_BYTES) { await reader.cancel().catch(() => {}); break; }
+    }
+    html += decoder.decode();
+  } finally { try { reader.releaseLock(); } catch { /* already released */ } }
+  return html;
+}
+
+/** Direct fetch with browser headers; follows redirects to any public host (validated each hop). */
+async function directPage(url: URL, root: string | null) {
   let current = url;
-  for (let hop = 0; hop < 3; hop++) {
+  for (let hop = 0; hop < 5; hop++) {
     const res = await fetch(current.toString(), {
-      headers: { Accept: "text/html", "User-Agent": "SahlPreview/1.0" },
-      redirect: "manual", signal: AbortSignal.timeout(6500),
+      headers: { Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8", "Accept-Language": "ar,en;q=0.8", "User-Agent": BROWSER_UA },
+      redirect: "manual", signal: AbortSignal.timeout(8000),
     });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const location = res.headers.get("location");
       if (!location) throw new Error("تعذر قراءة الموقع.");
-      const next = publicWebsiteUrl(new URL(location, current).toString());
-      if (!next || next.hostname.replace(/^www\./, "") !== root) throw new Error("الموقع نقلنا إلى رابط آخر؛ أدخل الرابط النهائي.");
+      const next = publicWebsiteUrl(new URL(location, current).toString().replace(/^http:/i, "https:"));
+      if (!next || (root && !sameSite(next.hostname, root))) throw new Error("إعادة توجيه غير آمنة.");
       current = next;
       continue;
     }
-    if (!res.ok || !(res.headers.get("content-type") ?? "").toLowerCase().includes("text/html")) throw new Error("لم نتمكن من قراءة صفحات هذا الموقع.");
-    if (Number(res.headers.get("content-length")) > 350_000) throw new Error("صفحة الموقع كبيرة جدًا للفحص السريع.");
-    const reader = res.body?.getReader();
-    if (!reader) throw new Error("لم نتمكن من قراءة هذا الموقع.");
-    let bytes = 0;
-    const decoder = new TextDecoder();
-    let html = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        bytes += value.byteLength;
-        if (bytes > 350_000) { await reader.cancel(); throw new Error("صفحة الموقع كبيرة جدًا للفحص السريع."); }
-        html += decoder.decode(value, { stream: true });
-      }
-      html += decoder.decode();
-    } finally { reader.releaseLock(); }
-    return { html, url: current.toString() };
+    const type = (res.headers.get("content-type") ?? "text/html").toLowerCase();
+    if (!res.ok || !/html|xml/.test(type)) throw new Error("لم نتمكن من قراءة صفحات هذا الموقع.");
+    return { html: await streamText(res), url: current.toString() };
   }
   throw new Error("تعذر الوصول للموقع بعد إعادة التوجيه.");
+}
+
+/**
+ * Open-source Jina Reader (github.com/jina-ai/reader) renders JavaScript in a real
+ * headless browser and returns the final HTML — rescues SPAs (React/Wix/Salla) and
+ * sites that block plain bots.
+ */
+async function renderedPage(url: URL) {
+  const res = await fetch(`https://r.jina.ai/${url.toString()}`, {
+    headers: { "X-Return-Format": "html", "X-Timeout": "12", Accept: "text/html" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error("لم نتمكن من قراءة صفحات هذا الموقع.");
+  const html = await streamText(res);
+  if (html.length < 300) throw new Error("لم نتمكن من قراءة صفحات هذا الموقع.");
+  return { html, url: url.toString() };
+}
+
+const visibleTextLength = (html: string) => html.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
+
+async function readPage(url: URL, root: string | null) {
+  const direct = await directPage(url, root).catch(() => null);
+  // Thin shell (client-rendered app) or blocked → render it.
+  const blocked = (h: string) => /<title>\s*(Just a moment|Attention Required|Access denied|Please wait|Verifying)/i.test(h) || /cf-browser-verification|challenge-platform|captcha/i.test(h.slice(0, 20000)) && visibleTextLength(h) < 1500;
+  if (direct && !blocked(direct.html) && visibleTextLength(direct.html) >= 400) return direct;
+  const rendered = await renderedPage(direct ? new URL(direct.url) : url).catch(() => null);
+  if (rendered && !blocked(rendered.html) && (!direct || blocked(direct.html) || visibleTextLength(rendered.html) > visibleTextLength(direct.html))) return rendered;
+  if (direct && !blocked(direct.html)) return direct;
+  throw new Error("هذا الموقع يمنع القراءة الآلية حاليًا؛ يمكنك المتابعة وسنحلله بعمق بعد التسجيل.");
+}
+
+/** sitemap.xml gives the real page list even when navigation is JS-only. */
+async function sitemapLinks(origin: string, root: string): Promise<URL[]> {
+  try {
+    const res = await fetch(`${origin}/sitemap.xml`, { headers: { "User-Agent": BROWSER_UA }, signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return [];
+    let xml = (await streamText(res)).slice(0, 400_000);
+    const child = /<sitemap>[\s\S]*?<loc>\s*([^<\s]+)\s*<\/loc>/i.exec(xml)?.[1];
+    if (child && !/<url>/i.test(xml)) {
+      const u = publicWebsiteUrl(child);
+      if (u && sameSite(u.hostname, root)) {
+        const r2 = await fetch(u.toString(), { headers: { "User-Agent": BROWSER_UA }, signal: AbortSignal.timeout(5000) });
+        if (r2.ok) xml = (await streamText(r2)).slice(0, 400_000);
+      }
+    }
+    const out: URL[] = [];
+    for (const m of xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) {
+      const u = publicWebsiteUrl(m[1]!.replace(/&amp;/g, "&"));
+      if (u && sameSite(u.hostname, root)) out.push(u);
+      if (out.length > 300) break;
+    }
+    return out;
+  } catch { return []; }
 }
 
 const clean = (value: string | null | undefined, max = 180) => (value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -81,8 +143,8 @@ const types = (value: unknown) => Array.isArray(value) ? value.join(" ") : Strin
 export async function previewWebsite(raw: string): Promise<WelcomePreview> {
   const url = publicWebsiteUrl(raw);
   if (!url) throw new Error("أدخل رابط موقع عام صالح، مثل example.com");
-  const root = url.hostname.replace(/^www\./, "");
-  const first = await readPage(url, root);
+  const first = await readPage(url, null);
+  const root = new URL(first.url).hostname.replace(/^www\./, "");
   const { document } = parseHTML(first.html);
   const meta = (selector: string) => clean(document.querySelector(selector)?.getAttribute("content"));
   const name = meta('meta[property="og:site_name"]') || clean(document.querySelector("title")?.textContent?.split(/[|–—]/)[0], 90) || url.hostname;
@@ -108,6 +170,10 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
     const content = doc.querySelector("main") ?? doc.querySelector("article") ?? doc.body;
     const text = clean(content?.textContent, 1500);
     if (text) samples.push(text);
+    const fullText = clean(content?.textContent, 20_000);
+    for (const m of fullText.matchAll(/[\w.+-]+@[\w-]+\.[\w.-]{2,}/g)) if (!/\.(png|jpe?g|webp|svg)$/i.test(m[0])) contacts.push(m[0].slice(0, 70));
+    for (const m of fullText.matchAll(/(?:\+|00)\d[\d\s-]{8,15}\d/g)) contacts.push(m[0].replace(/\s+/g, " "));
+    for (const m of fullText.matchAll(/(\d{1,3}(?:[,٬]\d{3})*(?:[.,]\d{1,2})?)\s*(ج\.?م|جنيه|ريال|ر\.س|درهم|د\.إ|دينار|دولار|EGP|SAR|AED|KWD|QAR|USD|\$)/gi)) offers.push(clean(m[0], 40));
     headings.push(...Array.from(content?.querySelectorAll("h1,h2,h3") ?? []).map((el) => clean(el.textContent, 90)));
     for (const el of Array.from(content?.querySelectorAll("a,button") ?? [])) {
       const label = clean(el.textContent, 65);
@@ -121,7 +187,7 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
         if (socialHosts.some((host) => target.hostname === host || target.hostname.endsWith(`.${host}`))) {
           socials.push(clean(`${target.hostname.replace(/^www\./, "")}${target.pathname.replace(/\/$/, "")}`, 90));
         }
-        if (target.protocol !== "https:" || target.hostname.replace(/^www\./, "") !== root) continue;
+        if (target.protocol !== "https:" || !sameSite(target.hostname, root)) continue;
         target.search = ""; target.hash = "";
         const path = decodeURIComponent(target.pathname);
         if (/\.(pdf|png|jpe?g|webp|zip|svg|mp4|xml|json)$/i.test(path) || /\/(?:cart|checkout|login|signin|account|admin|wp-admin|api)(?:\/|$)/i.test(path)) continue;
@@ -166,6 +232,12 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
 
   collect(first.html, first.url);
   visited.add(first.url);
+  const linkScore = (path: string) => /about|عن|من-نحن|service|خدم|product|منتج|catalog|shop|collections/i.test(path) ? 4 : /pricing|price|سعر|اسعار|أسعار|contact|تواصل|faq/i.test(path) ? 3 : 0;
+  if (links.length < 3) for (const u of await sitemapLinks(new URL(first.url).origin, root)) {
+    const path = decodeURIComponent(u.pathname);
+    const score = linkScore(path);
+    if (score && !/\/(?:cart|checkout|login|account|admin|api)(?:\/|$)/i.test(path)) links.push({ url: u, score });
+  }
   const candidates = links.sort((a, b) => b.score - a.score).filter(({ url: candidate }) => {
     const key = candidate.toString();
     if (visited.has(key)) return false;
