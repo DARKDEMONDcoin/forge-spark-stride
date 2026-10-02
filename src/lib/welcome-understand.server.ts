@@ -60,7 +60,7 @@ async function understand(preview: WelcomePreview, corpus: string): Promise<Welc
     const data = (await res.json()) as { output_text?: string; output?: { type?: string; content?: { type?: string; text?: string }[] }[] };
     const raw = (data.output_text ?? data.output?.flatMap((o) => o.content ?? []).filter((c) => c.type === "output_text").map((c) => c.text ?? "").join("") ?? "").trim();
     const parsed = profileSchema.safeParse(JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)));
-    if (!parsed.success) return null;
+    if (!parsed.success) { console.warn("[welcome-understand] invalid", parsed.error.issues.slice(0, 3).map((i) => i.path.join(".") + ":" + i.message).join(" ; ")); return null; }
     const p = parsed.data;
     const seen = new Set<string>();
     return { ...p, opportunities: p.opportunities.filter((o) => !seen.has(o.employee) && seen.add(o.employee)) };
