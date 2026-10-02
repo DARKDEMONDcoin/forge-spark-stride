@@ -18290,10 +18290,13 @@ section:has(> .integration-grid-wave) {
 
 .sahl-hero {
   position: relative;
-  min-height: 900px;
-  padding: 148px 0 104px;
+  min-height: 100svh;
+  padding: clamp(96px, 14vh, 148px) 0 clamp(48px, 8vh, 104px);
   overflow: hidden;
   background: var(--home-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .sahl-hero-ribbon {
   position: absolute;
@@ -18395,10 +18398,11 @@ section:has(> .integration-grid-wave) {
 .sahl-hero-layout {
   position: relative;
   z-index: 2;
-  min-height: 648px;
+  flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
   align-items: center;
+  align-content: center;
   gap: clamp(24px, 4vw, 64px);
 }
 .sahl-hero-copy {
@@ -18442,9 +18446,9 @@ section:has(> .integration-grid-wave) {
   font-style: normal;
 }
 .sahl-hero h1 {
-  margin-top: 34px;
+  margin-top: clamp(18px, 3.4vh, 34px);
   color: var(--home-ink);
-  font-size: clamp(4.4rem, 7.2vw, 7.5rem);
+  font-size: clamp(3rem, 6.4vw, 7.5rem);
   line-height: 1.02;
   font-weight: 600;
 }
