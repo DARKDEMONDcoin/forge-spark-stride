@@ -45252,7 +45252,7 @@ html {
     width: 100%;
     max-height: none;
     transform: none;
-    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+    padding: 16px 20px calc(96px + env(safe-area-inset-bottom));
     gap: 10px;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -45299,7 +45299,7 @@ html {
 
 @media (max-width: 720px) {
   .sahl-white-mobile {
-    inset-block-start: 88px;
+    inset-block-start: 82px;
   }
 
   .sahl-versus-table {
