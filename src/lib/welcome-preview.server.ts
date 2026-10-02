@@ -322,7 +322,10 @@ export async function readSite(raw: string): Promise<{ preview: WelcomePreview; 
   const ldLogo = /"logo"\s*:\s*(?:\{[^}]*?"url"\s*:\s*)?"([^"]+)"/.exec(html)?.[1];
   const asLogo = (v: string | null | undefined) => { const u = absHttps(v, first.url); return u && new URL(u).pathname.length > 1 ? u : ""; };
   const logo = asLogo(ldLogo) || asLogo(iconLinks[0]?.href) || absHttps("/favicon.ico", first.url);
-   const imageCandidates = [meta('meta[property="og:image"]'), meta('meta[property="og:image:secure_url"]'), meta('meta[name="twitter:image"]'), document.querySelector('link[rel="image_src"]')?.getAttribute("href"), ...Array.from(document.querySelectorAll("main img, article img, img")).slice(0, 24).map((el) => el.getAttribute("src") || el.getAttribute("data-src"))];
+   const pageImages = Array.from(document.querySelectorAll("main img, article img, img")).slice(0, 80)
+     .filter((el) => !el.hasAttribute(":src") && !/hidden|invisible|opacity-0/.test(el.getAttribute("class") ?? ""))
+     .map((el) => el.getAttribute("src") || el.getAttribute("data-src"));
+   const imageCandidates = [meta('meta[property="og:image:secure_url"]'), meta('meta[property="og:image"]'), meta('meta[name="twitter:image"]'), document.querySelector('link[rel="image_src"]')?.getAttribute("href"), ...pageImages];
    const image = imageCandidates.map((candidate) => absHttps(candidate, first.url)).find((candidate) => candidate && !/\.(svg|gif)(\?|$)/i.test(candidate) && !/(logo|icon|avatar|pixel|tracking|sprite)/i.test(new URL(candidate).pathname)) || "";
   const colorCounts = new Map<string, number>();
   const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(hexColor).filter(Boolean);
