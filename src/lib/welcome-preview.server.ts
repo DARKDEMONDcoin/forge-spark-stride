@@ -372,7 +372,7 @@ export async function readSite(raw: string): Promise<{ preview: WelcomePreview; 
     .map((el) => el.getAttribute("href") ?? "").filter(Boolean).slice(0, 6);
   const cssFiles = await Promise.all(styles.map((href) => siteStylesheet(href, first.url, root)));
   const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(siteColor).filter(Boolean);
-  const colors = unique([...declared, ...declaredBrandColors(`${html.slice(0, 150_000)}\n${cssFiles.join("\n")}`)], 4);
+  const colors = unique([...declaredBrandColors(`${html.slice(0, 150_000)}\n${cssFiles.join("\n")}`), ...declared], 4);
   const preview: WelcomePreview = { url: first.url, name, summary, industry, products: unique(products, 10), headings: unique(headings, 16), socials: unique(socials, 10), contacts: unique(contacts, 6), locations: unique(locations, 6), platform, language: clean(document.documentElement?.getAttribute("lang"), 20) || tone, pagesRead: unique(pagesRead, 5), offers: unique(offers, 5), actions: unique(actions, 7), policies: unique(policies, 5), signals: unique(signals, 5), tone, logo, image, colors, via: first.via, profile: null };
   return { preview, corpus: [summary && `الوصف: ${summary}`, ...corpus].filter(Boolean).join("\n\n").slice(0, 14_000) };
 }
