@@ -33,4 +33,23 @@ describe("public welcome scan", () => {
     expect(visited.some((url) => url.includes("evil.test"))).toBe(false);
     expect(visited.some((url) => url.includes("checkout"))).toBe(false);
   });
+
+  test("uses actual site stylesheet colors, not framework scales or off-site styles", async () => {
+    const visited: string[] = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      visited.push(url);
+      if (url === "https://example.com/") return new Response(`<html><head><title>Acme</title><meta name="theme-color" content="#f8f7f4"><link rel="stylesheet" href="/site.css"><link rel="stylesheet" href="https://elsewhere.com/tracker.css"><style>body{color:#aa4422}</style></head><body><main><h1>Acme</h1><p>Our products and services are here for the community.</p></main></body></html>`, { headers: { "content-type": "text/html" } });
+      if (url === "https://example.com/site.css") return new Response(`:root{--color-blue-500:#2255ff;--bg-accent:oklch(52.43% .2396 264.41);--brand-primary:#20a076;--border-primary:#663322}.button{color:#d73271}`, { headers: { "content-type": "text/css" } });
+      return new Response("", { status: 404 });
+    }) as typeof fetch;
+    const result = await previewWebsite("example.com");
+    expect(result.colors).toEqual(["oklch(52.43% .2396 264.41)", "#20a076", "#f8f7f4"]);
+    expect(visited).not.toContain("https://elsewhere.com/tracker.css");
+  });
+
+  test("does not manufacture colors when a site has no declared brand colors", async () => {
+    globalThis.fetch = (async () => new Response(`<html><head><title>Plain site</title></head><body><main><h1>Plain site</h1><p>Welcome to our services</p></main></body></html>`, { headers: { "content-type": "text/html" } })) as typeof fetch;
+    expect((await previewWebsite("example.com")).colors).toEqual([]);
+  });
 });

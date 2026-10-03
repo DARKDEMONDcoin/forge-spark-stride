@@ -19,7 +19,7 @@ export type WelcomePreview = {
   policies: string[];
   signals: string[];
   tone: string;
-  /** Brand assets for the visitor's DNA card (absolute https URLs / hex colors). */
+  /** Brand assets for the visitor's DNA card (absolute https URLs / verified CSS colors). */
   logo: string;
   image: string;
   colors: string[];
@@ -181,16 +181,56 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
 const absHttps = (value: string | null | undefined, base: string) => {
   try { if (!value?.trim()) return ""; const u = new URL(value.trim(), base); return u.protocol === "https:" ? u.toString().slice(0, 400) : ""; } catch { return ""; }
 };
-const hexColor = (value: string) => {
-  let h = value.trim().toLowerCase().replace(/^#/, "");
-  if (/^[0-9a-f]{3}$/.test(h)) h = h.split("").map((c) => c + c).join("");
-  if (!/^[0-9a-f]{6}$/.test(h)) return "";
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  // Skip near-white, near-black and greys: they are layout, not brand.
-  if (max - min < 28 || max < 35 || min > 225) return "";
-  return `#${h}`;
-};
+/** Only accept literal CSS colors from the site's own declarations, never guessed palette colors. */
+function siteColor(value: string): string {
+  const v = value.trim().toLowerCase();
+  if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(v)) return v;
+  const match = /^(oklch|hsl|rgb)\(([^()]+)\)$/.exec(v);
+  if (!match || !/^[\d.%\s,/-]+$/.test(match[2] ?? "")) return "";
+  const nums = (match[2] ?? "").match(/[\d.]+%?/g) ?? [];
+  return nums.length >= 3 ? v : "";
+}
+
+function declaredBrandColors(css: string): string[] {
+  const found: { name: string; value: string; score: number; order: number }[] = [];
+  let order = 0;
+  // Restrict candidates to semantic brand tokens and actual styled elements.
+  // Framework-wide color scales and generic color/fill properties are not a brand palette.
+  for (const m of css.matchAll(/(--[\w-]+|(?:background-color|color))\s*:\s*(#[0-9a-f]{3,8}\b|(?:oklch|hsl|rgb)\([^();{}]+\))/gi)) {
+    const name = m[1]!.toLowerCase();
+    const value = siteColor(m[2]!);
+    if (!value || /(?:hover|pressed|disabled|translucent|shadow|glow|gradient|border|ring|foreground|text|gray|grey|neutral|white|black|error|warning|success|destructive|notification|sapphire|twilight|bubblegum|flamingo|tiger|saffron)/.test(name)) continue;
+    const score = /--(?:bg-accent|brand(?:-color)?|color-brand|brand-primary|primary|accent|color-primary|color-accent)$/.test(name) ? 90
+      : /--(?:fg-accent|marketing-accent-primary|marketing-brand-ocean-primary)$/.test(name) ? 80
+      : /--[\w-]*(?:brand|accent|primary)[\w-]*$/.test(name) && !/--(?:bg-primary|fg-primary|color-(?:red|blue|orange|green|yellow|pink|purple|teal|cyan|lime)-\d+)$/.test(name) ? 40
+      : 0;
+    if (score) found.push({ name, value, score, order: order++ });
+  }
+  const byName = new Map<string, (typeof found)[number]>();
+  for (const item of found) if (!byName.has(item.name)) byName.set(item.name, item);
+  return unique([...byName.values()].sort((a, b) => b.score - a.score || a.order - b.order).map((item) => item.value), 3);
+}
+
+async function siteStylesheet(href: string, pageUrl: string, root: string): Promise<string> {
+  const target = publicWebsiteUrl(new URL(href, pageUrl).toString());
+  if (!target || !sameSite(target.hostname, root)) return "";
+  try {
+    let current = target;
+    for (let hop = 0; hop < 3; hop++) {
+      const res = await fetch(current.toString(), { redirect: "manual", headers: { Accept: "text/css", "User-Agent": BROWSER_UA }, signal: AbortSignal.timeout(5000) });
+      if ([301, 302, 303, 307, 308].includes(res.status)) {
+        const location = res.headers.get("location");
+        const next = location && publicWebsiteUrl(new URL(location, current).toString());
+        if (!next || !sameSite(next.hostname, root)) return "";
+        current = next;
+        continue;
+      }
+      if (!res.ok || !/css/.test(res.headers.get("content-type") ?? "text/css")) return "";
+      return (await streamText(res)).slice(0, MAX_BYTES);
+    }
+  } catch { /* An unreadable stylesheet is not evidence of a color. */ }
+  return "";
+}
 
 /** Reads the site and also returns the visible-text corpus used for AI understanding (server-only). */
 export async function readSite(raw: string): Promise<{ preview: WelcomePreview; corpus: string }> {
@@ -328,13 +368,11 @@ export async function readSite(raw: string): Promise<{ preview: WelcomePreview; 
      .map((el) => el.getAttribute("src") || el.getAttribute("data-src"));
    const imageCandidates = [meta('meta[property="og:image:secure_url"]'), meta('meta[property="og:image"]'), meta('meta[name="twitter:image"]'), document.querySelector('link[rel="image_src"]')?.getAttribute("href"), ...pageImages];
    const image = imageCandidates.map((candidate) => absHttps(candidate, first.url)).find((candidate) => candidate && !/\.(svg|gif)(\?|$)/i.test(candidate) && !/(logo|icon|avatar|pixel|tracking|sprite)/i.test(new URL(candidate).pathname)) || "";
-  const colorCounts = new Map<string, number>();
-  const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(hexColor).filter(Boolean);
-  for (const m of html.matchAll(/(?:color|background(?:-color)?|fill|--[\w-]*(?:primary|brand|accent|main)[\w-]*)\s*:\s*(#[0-9a-f]{3,6})\b/gi)) {
-    const c = hexColor(m[1]!);
-    if (c) colorCounts.set(c, (colorCounts.get(c) ?? 0) + 1);
-  }
-  const colors = unique([...declared, ...[...colorCounts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c)], 4);
+  const styles = Array.from(document.querySelectorAll('link[rel~="stylesheet"][href]'))
+    .map((el) => el.getAttribute("href") ?? "").filter(Boolean).slice(0, 6);
+  const cssFiles = await Promise.all(styles.map((href) => siteStylesheet(href, first.url, root)));
+  const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(siteColor).filter(Boolean);
+  const colors = unique([...declaredBrandColors(`${html.slice(0, 150_000)}\n${cssFiles.join("\n")}`), ...declared], 4);
   const preview: WelcomePreview = { url: first.url, name, summary, industry, products: unique(products, 10), headings: unique(headings, 16), socials: unique(socials, 10), contacts: unique(contacts, 6), locations: unique(locations, 6), platform, language: clean(document.documentElement?.getAttribute("lang"), 20) || tone, pagesRead: unique(pagesRead, 5), offers: unique(offers, 5), actions: unique(actions, 7), policies: unique(policies, 5), signals: unique(signals, 5), tone, logo, image, colors, via: first.via, profile: null };
   return { preview, corpus: [summary && `الوصف: ${summary}`, ...corpus].filter(Boolean).join("\n\n").slice(0, 14_000) };
 }
