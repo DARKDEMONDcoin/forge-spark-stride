@@ -181,34 +181,14 @@ export async function previewWebsite(raw: string): Promise<WelcomePreview> {
 const absHttps = (value: string | null | undefined, base: string) => {
   try { if (!value?.trim()) return ""; const u = new URL(value.trim(), base); return u.protocol === "https:" ? u.toString().slice(0, 400) : ""; } catch { return ""; }
 };
-const hexColor = (value: string) => {
-  let h = value.trim().toLowerCase().replace(/^#/, "");
-  if (/^[0-9a-f]{3}$/.test(h)) h = h.split("").map((c) => c + c).join("");
-  if (!/^[0-9a-f]{6}$/.test(h)) return "";
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  // Skip near-white, near-black and greys: they are layout, not brand.
-  if (max - min < 28 || max < 35 || min > 225) return "";
-  return `#${h}`;
-};
-
 /** Only accept literal CSS colors from the site's own declarations, never guessed palette colors. */
 function siteColor(value: string): string {
   const v = value.trim().toLowerCase();
-  if (/^#[0-9a-f]{3,8}$/.test(v)) {
-    const normalized = v.length <= 7 ? hexColor(v) : hexColor(v.slice(0, 7));
-    return normalized ? v : "";
-  }
+  if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(v)) return v;
   const match = /^(oklch|hsl|rgb)\(([^()]+)\)$/.exec(v);
   if (!match || !/^[\d.%\s,/-]+$/.test(match[2] ?? "")) return "";
   const nums = (match[2] ?? "").match(/[\d.]+%?/g) ?? [];
-  if (match[1] === "oklch") return parseFloat(nums[1] ?? "0") >= 0.035 ? v : "";
-  if (match[1] === "hsl") return parseFloat(nums[1] ?? "0") >= 10 ? v : "";
-  if (match[1] === "rgb" && nums.length >= 3) {
-    const rgb = nums.slice(0, 3).map(Number);
-    return Math.max(...rgb) - Math.min(...rgb) >= 28 ? v : "";
-  }
-  return "";
+  return nums.length >= 3 ? v : "";
 }
 
 function declaredBrandColors(css: string): string[] {
