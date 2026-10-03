@@ -202,13 +202,13 @@ function declaredBrandColors(css: string): string[] {
     if (!value || /(?:hover|pressed|disabled|translucent|shadow|glow|gradient|border|ring|foreground|text|gray|grey|neutral|white|black|error|warning|success|destructive|notification|sapphire|twilight|bubblegum|flamingo|tiger|saffron)/.test(name)) continue;
     const score = /--(?:bg-accent|brand(?:-color)?|color-brand|brand-primary|primary|accent|color-primary|color-accent)$/.test(name) ? 90
       : /--(?:fg-accent|marketing-accent-primary|marketing-brand-ocean-primary)$/.test(name) ? 80
-      : /--[\w-]*(?:brand|accent|primary)[\w-]*$/.test(name) && !/--color-(?:red|blue|orange|green|yellow|pink|purple|teal|cyan|lime)-\d+/.test(name) ? 40
+      : /--[\w-]*(?:brand|accent|primary)[\w-]*$/.test(name) && !/--(?:bg-primary|fg-primary|color-(?:red|blue|orange|green|yellow|pink|purple|teal|cyan|lime)-\d+)$/.test(name) ? 40
       : 0;
     if (score) found.push({ name, value, score, order: order++ });
   }
   const byName = new Map<string, (typeof found)[number]>();
   for (const item of found) if (!byName.has(item.name)) byName.set(item.name, item);
-  return unique([...byName.values()].sort((a, b) => b.score - a.score || a.order - b.order).map((item) => item.value), 4);
+  return unique([...byName.values()].sort((a, b) => b.score - a.score || a.order - b.order).map((item) => item.value), 3);
 }
 
 async function siteStylesheet(href: string, pageUrl: string, root: string): Promise<string> {
