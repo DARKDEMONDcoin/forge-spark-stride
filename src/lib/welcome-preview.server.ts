@@ -19,7 +19,7 @@ export type WelcomePreview = {
   policies: string[];
   signals: string[];
   tone: string;
-  /** Brand assets for the visitor's DNA card (absolute https URLs / hex colors). */
+  /** Brand assets for the visitor's DNA card (absolute https URLs / verified CSS colors). */
   logo: string;
   image: string;
   colors: string[];
@@ -191,6 +191,64 @@ const hexColor = (value: string) => {
   if (max - min < 28 || max < 35 || min > 225) return "";
   return `#${h}`;
 };
+
+/** Only accept literal CSS colors from the site's own declarations, never guessed palette colors. */
+function siteColor(value: string): string {
+  const v = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{3,8}$/.test(v)) {
+    const normalized = v.length <= 7 ? hexColor(v) : hexColor(v.slice(0, 7));
+    return normalized ? v : "";
+  }
+  const match = /^(oklch|hsl|rgb)\(([^()]+)\)$/.exec(v);
+  if (!match || !/^[\d.%\s,/-]+$/.test(match[2] ?? "")) return "";
+  const nums = (match[2] ?? "").match(/[\d.]+%?/g) ?? [];
+  if (match[1] === "oklch") return parseFloat(nums[1] ?? "0") >= 0.035 ? v : "";
+  if (match[1] === "hsl") return parseFloat(nums[1] ?? "0") >= 10 ? v : "";
+  if (match[1] === "rgb" && nums.length >= 3) {
+    const rgb = nums.slice(0, 3).map(Number);
+    return Math.max(...rgb) - Math.min(...rgb) >= 28 ? v : "";
+  }
+  return "";
+}
+
+function declaredBrandColors(css: string): string[] {
+  const found: { value: string; score: number; order: number }[] = [];
+  let order = 0;
+  // Restrict candidates to semantic brand tokens and actual styled elements.
+  // Framework-wide color scales and generic color/fill properties are not a brand palette.
+  for (const m of css.matchAll(/(--[\w-]+|(?:background-color|color))\s*:\s*(#[0-9a-f]{3,8}\b|(?:oklch|hsl|rgb)\([^();{}]+\))/gi)) {
+    const name = m[1]!.toLowerCase();
+    const value = siteColor(m[2]!);
+    if (!value || /(?:hover|pressed|disabled|translucent|shadow|glow|gradient|border|ring|foreground|text|gray|grey|neutral|white|black|error|warning|success|destructive|notification|sapphire|twilight|bubblegum|flamingo|tiger|saffron)/.test(name)) continue;
+    const score = /--(?:bg-accent|brand(?:-color)?|color-brand|brand-primary|primary|accent|color-primary|color-accent)$/.test(name) ? 90
+      : /--(?:fg-accent|marketing-accent-primary|marketing-brand-ocean-primary)$/.test(name) ? 80
+      : /--[\w-]*(?:brand|accent|primary)[\w-]*$/.test(name) && !/--color-(?:red|blue|orange|green|yellow|pink|purple|teal|cyan|lime)-\d+/.test(name) ? 40
+      : 0;
+    if (score) found.push({ value, score, order: order++ });
+  }
+  return [...new Map(found.sort((a, b) => b.score - a.score || a.order - b.order).map((item) => [item.value, item])).values()].slice(0, 4).map((item) => item.value);
+}
+
+async function siteStylesheet(href: string, pageUrl: string, root: string): Promise<string> {
+  const target = publicWebsiteUrl(new URL(href, pageUrl).toString());
+  if (!target || !sameSite(target.hostname, root)) return "";
+  try {
+    let current = target;
+    for (let hop = 0; hop < 3; hop++) {
+      const res = await fetch(current.toString(), { redirect: "manual", headers: { Accept: "text/css", "User-Agent": BROWSER_UA }, signal: AbortSignal.timeout(5000) });
+      if ([301, 302, 303, 307, 308].includes(res.status)) {
+        const location = res.headers.get("location");
+        const next = location && publicWebsiteUrl(new URL(location, current).toString());
+        if (!next || !sameSite(next.hostname, root)) return "";
+        current = next;
+        continue;
+      }
+      if (!res.ok || !/css/.test(res.headers.get("content-type") ?? "text/css")) return "";
+      return (await streamText(res)).slice(0, MAX_BYTES);
+    }
+  } catch { /* An unreadable stylesheet is not evidence of a color. */ }
+  return "";
+}
 
 /** Reads the site and also returns the visible-text corpus used for AI understanding (server-only). */
 export async function readSite(raw: string): Promise<{ preview: WelcomePreview; corpus: string }> {
