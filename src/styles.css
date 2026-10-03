@@ -47443,6 +47443,47 @@ body:has(.welcome-stage) .sahl-cookie-consent { display: none; }
   .welcome-dna-cover { height: 3.75rem; margin-bottom: .3rem; }
 }
 
+/* On phones the tour stays within the viewport, while its content can grow and scroll
+   above the persistent navigation instead of being cropped by a fixed-height card. */
+@media (max-width: 767px) {
+  .welcome-content {
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+  }
+  .welcome-centered {
+    max-height: none;
+    margin: auto;
+    padding-block: .8rem 1rem;
+  }
+  .welcome-website .welcome-dna { overflow: visible; }
+  .welcome-website .welcome-dna-head strong,
+  .welcome-website .welcome-dna-head span[dir="ltr"] {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+  .welcome-website .welcome-dna-line,
+  .welcome-website .welcome-dna-row,
+  .welcome-website .welcome-dna-team li span {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    overflow-wrap: anywhere;
+  }
+  .welcome-website .welcome-dna-row b { display: inline; }
+  .welcome-website .welcome-dna-chips { max-height: none; overflow: visible; }
+  .welcome-website .welcome-dna-chips span {
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* Very short phones: keep the whole intro on the first screen */
 @media (max-width: 720px) and (max-height: 640px) {
   .sahl-hero-layout {
