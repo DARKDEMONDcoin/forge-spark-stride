@@ -44,7 +44,7 @@ describe("public welcome scan", () => {
       return new Response("", { status: 404 });
     }) as typeof fetch;
     const result = await previewWebsite("example.com");
-    expect(result.colors).toEqual(["oklch(52.43% .2396 264.41)", "#20a076"]);
+    expect(result.colors).toEqual(["#f8f7f4", "oklch(52.43% .2396 264.41)", "#20a076"]);
     expect(visited).not.toContain("https://elsewhere.com/tracker.css");
   });
 
