@@ -386,13 +386,11 @@ export async function readSite(raw: string): Promise<{ preview: WelcomePreview; 
      .map((el) => el.getAttribute("src") || el.getAttribute("data-src"));
    const imageCandidates = [meta('meta[property="og:image:secure_url"]'), meta('meta[property="og:image"]'), meta('meta[name="twitter:image"]'), document.querySelector('link[rel="image_src"]')?.getAttribute("href"), ...pageImages];
    const image = imageCandidates.map((candidate) => absHttps(candidate, first.url)).find((candidate) => candidate && !/\.(svg|gif)(\?|$)/i.test(candidate) && !/(logo|icon|avatar|pixel|tracking|sprite)/i.test(new URL(candidate).pathname)) || "";
-  const colorCounts = new Map<string, number>();
-  const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(hexColor).filter(Boolean);
-  for (const m of html.matchAll(/(?:color|background(?:-color)?|fill|--[\w-]*(?:primary|brand|accent|main)[\w-]*)\s*:\s*(#[0-9a-f]{3,6})\b/gi)) {
-    const c = hexColor(m[1]!);
-    if (c) colorCounts.set(c, (colorCounts.get(c) ?? 0) + 1);
-  }
-  const colors = unique([...declared, ...[...colorCounts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c)], 4);
+  const styles = Array.from(document.querySelectorAll('link[rel~="stylesheet"][href]'))
+    .map((el) => el.getAttribute("href") ?? "").filter(Boolean).slice(0, 6);
+  const cssFiles = await Promise.all(styles.map((href) => siteStylesheet(href, first.url, root)));
+  const declared = [meta('meta[name="theme-color"]'), meta('meta[name="msapplication-TileColor"]')].map(siteColor).filter(Boolean);
+  const colors = unique([...declared, ...declaredBrandColors(`${html.slice(0, 150_000)}\n${cssFiles.join("\n")}`)], 4);
   const preview: WelcomePreview = { url: first.url, name, summary, industry, products: unique(products, 10), headings: unique(headings, 16), socials: unique(socials, 10), contacts: unique(contacts, 6), locations: unique(locations, 6), platform, language: clean(document.documentElement?.getAttribute("lang"), 20) || tone, pagesRead: unique(pagesRead, 5), offers: unique(offers, 5), actions: unique(actions, 7), policies: unique(policies, 5), signals: unique(signals, 5), tone, logo, image, colors, via: first.via, profile: null };
   return { preview, corpus: [summary && `الوصف: ${summary}`, ...corpus].filter(Boolean).join("\n\n").slice(0, 14_000) };
 }
