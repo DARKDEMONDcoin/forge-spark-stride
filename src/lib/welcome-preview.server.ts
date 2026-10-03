@@ -192,7 +192,7 @@ function siteColor(value: string): string {
 }
 
 function declaredBrandColors(css: string): string[] {
-  const found: { value: string; score: number; order: number }[] = [];
+  const found: { name: string; value: string; score: number; order: number }[] = [];
   let order = 0;
   // Restrict candidates to semantic brand tokens and actual styled elements.
   // Framework-wide color scales and generic color/fill properties are not a brand palette.
@@ -204,9 +204,11 @@ function declaredBrandColors(css: string): string[] {
       : /--(?:fg-accent|marketing-accent-primary|marketing-brand-ocean-primary)$/.test(name) ? 80
       : /--[\w-]*(?:brand|accent|primary)[\w-]*$/.test(name) && !/--color-(?:red|blue|orange|green|yellow|pink|purple|teal|cyan|lime)-\d+/.test(name) ? 40
       : 0;
-    if (score) found.push({ value, score, order: order++ });
+    if (score) found.push({ name, value, score, order: order++ });
   }
-  return [...new Map(found.sort((a, b) => b.score - a.score || a.order - b.order).map((item) => [item.value, item])).values()].slice(0, 4).map((item) => item.value);
+  const byName = new Map<string, (typeof found)[number]>();
+  for (const item of found) if (!byName.has(item.name)) byName.set(item.name, item);
+  return unique([...byName.values()].sort((a, b) => b.score - a.score || a.order - b.order).map((item) => item.value), 4);
 }
 
 async function siteStylesheet(href: string, pageUrl: string, root: string): Promise<string> {
